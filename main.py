@@ -2,10 +2,20 @@ from rlcard.agents import DQNAgent
 from rlcard.agents import RandomAgent
 from rlcard.agents import NFSPAgent
 import canastaenv
+import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 from rlcard.utils import reorganize
 import multiprocessing as mp
+import matplotlib
+import torch
+
+
+is_ipython = 'inline' in matplotlib.get_backend()
+if is_ipython:
+    from IPython import display
+
+
 
 env = canastaenv.CanastaEnv(resetScoreLog=True)
 
@@ -34,31 +44,70 @@ randomAgent = RandomAgent(
 
 env.set_agents([agent,agent2,randomAgent,agent,agent2,randomAgent])
 playerScoreLog = np.zeros((6,))
+maxScores = []
 def runWithTrajectories(_):
     global playerScoreLog
-    trajectories,payoffs = env.run(is_training=True)
+    trajectories,payoffs,maxScore = env.run(is_training=True)
     # Reorganaize the data to be state, action, reward, next_state, done
     trajectories = reorganize(trajectories, payoffs)
     # Feed transitions into agent memory, and train the agent
     for ts in trajectories[0]:
         agent.feed(ts)
         agent2.feed(ts)
-    return payoffs
+    return payoffs, maxScore
+
+def plot_durations(show_result=False):
+    global maxScores
+    plt.figure(1)
+    durations_t = torch.tensor(maxScores, dtype=torch.float)
+    if show_result:
+        plt.title('Result')
+    else:
+        plt.clf()
+        plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Score')
+    plt.plot(durations_t.numpy())
+    # Take 100 episode averages and plot them too
+    if len(durations_t) >= 100:
+        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(99), means))
+        plt.plot(means.numpy())
+
+    plt.pause(0.05)  # pause a bit so that plots are updated
+    if is_ipython:
+        if not show_result:
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+        else:
+            display.display(plt.gcf())
 
 if __name__ == "__main__":
-    for episode in range(100):
+    for episode in range(300):
         # Generate data from the environment
         with mp.Pool(10) as pool:
-            log = pool.map(runWithTrajectories, range(100))
+            output = pool.map(runWithTrajectories, range(10))
             pool.close()
+            log = []
+            maxes = []
+            for i in output:
+                log.append(i[0])
+                maxes.append(i[1])
             for i in log:
                 playerScoreLog += i
-        print(episode, list(playerScoreLog / 100))
+            for i in maxes:
+                maxScores.append(i)
+        print(episode, list(playerScoreLog / 10))
         playerScoreLog = [0] * 6
 
-        file = open("episode" + str(episode) + "model1" + ".pkl", "wb")
+        file = open("2episode" + str(episode) + "model1" + ".pkl", "wb")
         pickle.dump(env.agents[0], file)
         file.close()
-        file = open("episode" + str(episode) + "model2" + ".pkl", "wb")
+        file = open("2episode" + str(episode) + "model2" + ".pkl", "wb")
         pickle.dump(env.agents[1], file)
         file.close()
+
+    plt.ion()
+    plot_durations(show_result=True)
+    plt.show(block=True)
+

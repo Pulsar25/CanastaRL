@@ -10,7 +10,7 @@ from rlcard.agents import RandomAgent
 n_observations = 250
 n_actions = 50
 
-file = open("episode26model1.pkl", "rb")
+file = open("2episode299model2.pkl", "rb")
 model = pickle.load(file)
 file.close()
 

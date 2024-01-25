@@ -3,7 +3,6 @@ from collections import OrderedDict
 import envutil
 from rlcard.envs import Env
 
-
 class CanastaEnv(Env):
     def __init__(self,resetScoreLog=False):
         self.name = 'canasta'
@@ -12,9 +11,15 @@ class CanastaEnv(Env):
         self.state_shape = [[231] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
         self.num_actions = 51
-        self.winningScores = []
         if resetScoreLog:
+            self.winningScores = []
             self.playerScoreLog = [0] * 6
+
+    def getMaxScore(self):
+        playerScores = [(player.board.getScore() - player.getHandScore() - player.partner.getHandScore()) for player in self.game.players]
+        playerScores[self.game.turn - 1] += 100
+        playerScores[(self.game.turn + 2) % 6] += 100
+        return max(playerScores[0],playerScores[1])
 
     def _get_legal_actions(self):
         legal_actions = [i for i in range(51) if envutil.checkLegal(self.game.get_current_player(),self.game,envutil.numToMove(i))]
@@ -38,6 +43,7 @@ class CanastaEnv(Env):
         playerPayoffs = [(playerScores[i] * 3) - playerScores[(i + 1) % 6] - playerScores[(i+2) % 6] for i in range(6)]
         for i in range(6):
             self.playerScoreLog[i] += playerPayoffs[i]
+        self.winningScores.append(max(playerScores[0],playerScores[1]))
         return np.array(playerPayoffs)
 
     def _decode_action(self, action_id):
