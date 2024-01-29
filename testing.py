@@ -10,7 +10,7 @@ from rlcard.agents import RandomAgent
 n_observations = 250
 n_actions = 50
 
-file = open("2episode299model2.pkl", "rb")
+file = open("episode30model1.pkl", "rb")
 model = pickle.load(file)
 file.close()
 
@@ -54,22 +54,12 @@ def predict(game):
     return prediction
 
 def run_user_game():
-    pygame.init()
-    screen = pygame.display.set_mode((1280, 720))
-    def _get_legal_actions():
-        legal_actions = [i for i in range(50) if envutil.checkLegal(game.get_current_player(),game,envutil.numToMove(i))]
-        legal_actions_ids = {action_event: None for action_event in legal_actions}
-        return OrderedDict(legal_actions_ids)
-
     print("Player will play player 1")
     teams = 3
     decks = 3
     handSize = 13
     game = envutil.Game(teams,decks,handSize)
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                break
         text = ""
         if 0 == game.turn:
             text = "> "
@@ -78,9 +68,7 @@ def run_user_game():
         for i in range(15):
             hand += ((numToCard(i) + " ") * game.players[0].hand[i])
         text += hand
-        font1 = pygame.font.SysFont(text, 36)
-        img1 = font1.render(text, True, "white")
-        screen.blit(img1, (20, 20))
+        print(text)
         for player in range(3):
             text = ""
             if player == game.turn % 3:
@@ -93,19 +81,9 @@ def run_user_game():
             for pile in game.players[player].board.piles:
                 text += "(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(pile.jokers) + "J, " + str(
                     pile.twos) + "Twos)  "
-            font1 = pygame.font.SysFont(text, 36)
-            img1 = font1.render(text, True, "white")
-            screen.blit(img1, (20, 240 + player * 60))
-
+            print(text)
         if len(game.discardPile) > 0:
-            font1 = pygame.font.SysFont(numToCard(game.discardPile[-1]), 36)
-            img1 = font1.render(numToCard(game.discardPile[-1]), True, "white")
-            screen.blit(img1, (20, 400))
-
-            font1 = pygame.font.SysFont(numToCard(game.discardPile[0: -1]), 36)
-            img1 = font1.render(numToCard(game.discardPile[0:-1]), True, "white")
-            screen.blit(img1, (20, 425))
-
+            print(numToCard(game.discardPile[-1]))
         if game.turn % 6 == 0:
             chosen = input("Enter move ")
             while not envutil.checkLegal(game.players[0],game,chosen):
@@ -116,15 +94,12 @@ def run_user_game():
             chosen = envutil.numToMove(chosen)
             print("Player " + str(game.turn+1) + " chose " + chosen)
             _ = input("Click enter when ready to move on")
-        envutil.executeMove(game.players[game.turn],game,chosen)
         if game.finished:
             if game.finished:
                 print("Finished Game")
             break
         envutil.executeMove(game.players[game.turn % 6], game, chosen)
-
-
-    pygame.quit()
+        print()
 
 def numToCard(n):
     if n == 1:
