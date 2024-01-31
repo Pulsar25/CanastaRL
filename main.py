@@ -1,3 +1,5 @@
+import cProfile
+
 from rlcard.agents import DQNAgent
 from rlcard.agents import RandomAgent
 from rlcard.agents import NFSPAgent
@@ -82,23 +84,19 @@ def plot_durations(show_result=False):
         else:
             display.display(plt.gcf())
 
-if __name__ == "__main__":
-    for episode in range(300):
+def main(multithread=True):
+    for episode in range(1000):
         # Generate data from the environment
-        with mp.Pool(10) as pool:
-            output = pool.map(runWithTrajectories, range(10))
-            pool.close()
-            log = []
-            maxes = []
-            for i in output:
-                log.append(i[0])
-                maxes.append(i[1])
-            for i in log:
-                playerScoreLog += i
-            for i in maxes:
-                maxScores.append(i)
-        print(episode, list(playerScoreLog / 10))
-        playerScoreLog = [0] * 6
+        if multithread:
+            with mp.Pool(10) as pool:
+                output = pool.map(runWithTrajectories, range(10))
+                pool.close()
+                for i in output:
+                    maxScores.append(i[1])
+        else:
+            output = runWithTrajectories(0)
+            maxScores.append(output[1])
+        print(episode)
 
         file = open("2episode" + str(episode) + "model1" + ".pkl", "wb")
         pickle.dump(env.agents[0], file)
@@ -111,3 +109,6 @@ if __name__ == "__main__":
     plot_durations(show_result=True)
     plt.show(block=True)
 
+if __name__ == "__main__":
+    main(multithread=False)
+    #cProfile.run("main(multithread=False)")

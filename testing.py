@@ -5,12 +5,11 @@ import pygame
 import numpy as np
 import pickle
 from collections import OrderedDict
-from rlcard.agents import RandomAgent
 
 n_observations = 250
 n_actions = 50
 
-file = open("episode30model1.pkl", "rb")
+file = open("2episode999model2.pkl", "rb")
 model = pickle.load(file)
 file.close()
 
@@ -50,19 +49,19 @@ def predict(game):
     output['legal_actions'] = _get_legal_actions()
     output['raw_obs'] = output['obs']
     output['raw_legal_actions'] = list(output['legal_actions'].keys())
-    prediction = (models[game.turn].step(output,testing=True))
-    return prediction
+    prediction, q_values = (models[game.turn].step(output,testing=True))
+    return prediction, q_values
 
 def run_user_game():
-    print("Player will play player 1")
+    print()
+    print("Human player will play player 1")
     teams = 3
     decks = 3
     handSize = 13
     game = envutil.Game(teams,decks,handSize)
     while True:
+        print("Player " + str(game.turn + 1) + " playing")
         text = ""
-        if 0 == game.turn:
-            text = "> "
         text += "P" + str(1) + " Hand: "
         hand = ""
         for i in range(15):
@@ -74,7 +73,6 @@ def run_user_game():
             if player == game.turn % 3:
                 text = "> "
             text += "P" + str(player + 1) + " Board: "
-            board = ""
             for pile in game.players[player].board.canastas:
                 text += "*(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(
                     pile.jokers) + "J, " + str(pile.twos) + "Twos)*  "
@@ -90,9 +88,14 @@ def run_user_game():
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
-            chosen = predict(game)
+            chosen, q_values = predict(game)
+            q_values = sorted([(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],reverse=True)
             chosen = envutil.numToMove(chosen)
             print("Player " + str(game.turn+1) + " chose " + chosen)
+            text = ""
+            for i in range(5):
+                text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
+            print(text)
             _ = input("Click enter when ready to move on")
         if game.finished:
             if game.finished:

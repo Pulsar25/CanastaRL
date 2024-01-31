@@ -338,19 +338,19 @@ def checkLegal(player: Player, game, move):
         player.hand[15] -= 1
         player.hand[game.draw()] += 1
     handSize = 0
-    if move == "goOut":
-        return (handSize - player.hand[3] == 1 and (player.hand[3] >= 3 or player.hand[3] == 0))
-    if move == "15":
-        return False
-    if move == "d15":
-        return False
-    if move == "wild215":
-        return False
-    if move == "wildJ15":
-        return False
     for i in range(1,15):
         handSize += player.hand[i]
-    if move == "pickupPileJ":
+    if move == "goOut":
+        return (handSize - player.hand[3] == 1 and (player.hand[3] >= 3 or player.hand[3] == 0))
+    elif move == "15":
+        return False
+    elif move == "d15":
+        return False
+    elif move == "wild215":
+        return False
+    elif move == "wildJ15":
+        return False
+    elif move == "pickupPileJ":
         if handSize <= 2 and len(game.discardPile) == 1:
             return False
         if len(game.discardPile) == 0:
@@ -359,13 +359,13 @@ def checkLegal(player: Player, game, move):
             return False
         if (game.drawn == True) or game.discardPile[-1] < 4:
             return False
-        if game.frozen or len(player.board.canastas) == 0:
+        if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
         else:
             for i in player.board.piles:
                 if i.cardType == game.discardPile[-1]:
                     return True
-            return player.hand[1] >= 1 and player.hand[game.discardPile[-1]] >= 1
+            return (player.hand[1] >= 1 and player.hand[game.discardPile[-1]]) >= 1 or player.hand[game.discardPile[-1]] >= 2
     elif move == "pickupPile2":
         if len(game.discardPile) == 0:
             return False
@@ -375,13 +375,13 @@ def checkLegal(player: Player, game, move):
             return False
         if game.discardPile[-1] <= 2:
             return False
-        if game.frozen or len(player.board.canastas) == 0:
+        if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
         else:
             for i in player.board.piles:
                 if i.cardType == game.discardPile[-1]:
                     return True
-            return player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1
+            return (player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1) or player.hand[game.discardPile[-1]] >= 2
     elif move[0] == 'w' and move[4] == 'J':
         if game.drawn == False:
             return False
@@ -473,7 +473,7 @@ def executeMove(player: Player,game : Game,move):
             game.frozen = True
         player.hand[3] = 0
         game.finished = True
-    if move == "pickupPileJ":
+    elif move == "pickupPileJ":
         game.drawn = True
         done = False
         for pile in player.board.piles:
@@ -682,7 +682,7 @@ def nodesConversion(hand,board,discardPile,drawn,player):
     nodes.append(player.game.turns)
     turn = player.game.turn
     curr = len(nodes)
-    for i in range(4,15):
+    for i in range(4,26):
         nodes.append(0)
     for pile in player.game.players[(turn + 1) % 6].board.piles:
         nodes[curr + pile.cardType - 4] = pile.getTotalCount()
@@ -691,13 +691,9 @@ def nodesConversion(hand,board,discardPile,drawn,player):
         nodes.append(0)
     for pile in player.game.players[(turn + 2) % 6].board.piles:
         nodes[curr + pile.cardType - 4] = pile.getTotalCount()
-    for i in range(3,15):
-        nodes.append(int(player.hand[i] >= 2))
     for i in range(5):
         for j in range(1,15):
             nodes.append(player.knowledge[i][j])
     for i in range(6):
         nodes.append(player.game.players[(turn + i) % 6].getHandSize())
-    for i in range(51):
-        nodes.append(int(checkLegal(player,player.game,numToMove(i))))
     return nodes

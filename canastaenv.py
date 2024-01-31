@@ -8,7 +8,7 @@ class CanastaEnv(Env):
         self.name = 'canasta'
         self.game = envutil.Game(3,3,13)
         super().__init__(config={'allow_step_back' : False,'seed' : 1023012030123})
-        self.state_shape = [[231] for _ in range(self.game.playersCount)]
+        self.state_shape = [[179] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
         self.num_actions = 51
         if resetScoreLog:
