@@ -351,9 +351,12 @@ def checkLegal(player: Player, game, move):
     elif move == "wildJ15":
         return False
     elif move == "pickupPileJ":
-        if handSize <= 2 and len(game.discardPile) == 1:
-            return False
+        for i in player.board.piles:
+            if i.cardType == game.discardPile[-1]:
+                return True
         if len(game.discardPile) == 0:
+            return False
+        if handSize <= 2 and len(game.discardPile) == 1:
             return False
         if game.discardPile[-1] <= 2:
             return False
@@ -361,12 +364,11 @@ def checkLegal(player: Player, game, move):
             return False
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
-        else:
-            for i in player.board.piles:
-                if i.cardType == game.discardPile[-1]:
-                    return True
-            return (player.hand[1] >= 1 and player.hand[game.discardPile[-1]]) >= 1 or player.hand[game.discardPile[-1]] >= 2
+        return (player.hand[1] >= 1 and player.hand[game.discardPile[-1]]) >= 1 or player.hand[game.discardPile[-1]] >= 2
     elif move == "pickupPile2":
+        for i in player.board.piles:
+            if i.cardType == game.discardPile[-1]:
+                return True
         if len(game.discardPile) == 0:
             return False
         if handSize <= 2 and len(game.discardPile) == 1:
@@ -377,11 +379,7 @@ def checkLegal(player: Player, game, move):
             return False
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
-        else:
-            for i in player.board.piles:
-                if i.cardType == game.discardPile[-1]:
-                    return True
-            return (player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1) or player.hand[game.discardPile[-1]] >= 2
+        return (player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1) or player.hand[game.discardPile[-1]] >= 2
     elif move[0] == 'w' and move[4] == 'J':
         if game.drawn == False:
             return False
