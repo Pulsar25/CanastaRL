@@ -1,9 +1,8 @@
 import cProfile
-
 from rlcard.agents import DQNAgent
 from rlcard.agents import RandomAgent
-from rlcard.agents import NFSPAgent
 import canastaenv
+from random import shuffle
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
@@ -38,12 +37,30 @@ agent2 = DQNAgent(
     train_every=1,
     device="cuda:0",
 )
+agent3 = DQNAgent(
+    num_actions=env.num_actions,
+    state_shape=env.state_shape[0],
+    mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
+    epsilon_decay_steps=1000,
+    learning_rate=0.01,
+    train_every=1,
+    device="cuda:0",
+)
+agent4 = DQNAgent(
+    num_actions=env.num_actions,
+    state_shape=env.state_shape[0],
+    mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
+    epsilon_decay_steps=1000,
+    learning_rate=0.01,
+    train_every=1,
+    device="cuda:0",
+)
 
 randomAgent = RandomAgent(
     num_actions=env.num_actions,
 )
 
-env.set_agents([agent, agent2, randomAgent, agent, agent2, randomAgent])
+env.set_agents([agent, agent2, randomAgent, agent3, agent4, randomAgent])
 playerScoreLog = np.zeros((6,))
 maxScores = []
 
@@ -57,6 +74,8 @@ def runWithTrajectories(_):
     for ts in trajectories[0]:
         agent.feed(ts)
         agent2.feed(ts)
+        agent3.feed(ts)
+        agent4.feed(ts)
     return payoffs, maxScore
 
 
@@ -101,12 +120,20 @@ def main(multithread=True):
             maxScores.append(output[1])
         print(episode)
 
-        file = open("2episode" + str(episode) + "model1" + ".pkl", "wb")
-        pickle.dump(env.agents[0], file)
+        file = open("3episode" + str(episode) + "model1" + ".pkl", "wb")
+        pickle.dump(agent, file)
         file.close()
-        file = open("2episode" + str(episode) + "model2" + ".pkl", "wb")
-        pickle.dump(env.agents[1], file)
+        file = open("3episode" + str(episode) + "model2" + ".pkl", "wb")
+        pickle.dump(agent2, file)
         file.close()
+        file = open("3episode" + str(episode) + "model3" + ".pkl", "wb")
+        pickle.dump(agent3, file)
+        file.close()
+        file = open("3episode" + str(episode) + "model4" + ".pkl", "wb")
+        pickle.dump(agent4, file)
+        file.close()
+
+        shuffle(env.agents)
 
     plt.ion()
     plot_durations(show_result=True)

@@ -401,6 +401,8 @@ def checkLegal(player: Player, game, move):
     elif move == "pickupPileJ":
         if len(game.discardPile) == 0:
             return False
+        if len(game.discardPile) == 1 and handSize == 1:
+            return False
         for i in player.board.piles:
             if i.cardType == game.discardPile[-1]:
                 return True
@@ -408,7 +410,7 @@ def checkLegal(player: Player, game, move):
             return False
         if game.discardPile[-1] <= 2:
             return False
-        if (game.drawn == True) or game.discardPile[-1] < 4:
+        if game.drawn or game.discardPile[-1] < 4:
             return False
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
@@ -418,12 +420,14 @@ def checkLegal(player: Player, game, move):
     elif move == "pickupPile2":
         if len(game.discardPile) == 0:
             return False
+        if len(game.discardPile) == 1 and handSize == 1:
+            return False
         for i in player.board.piles:
             if i.cardType == game.discardPile[-1]:
                 return True
         if handSize <= 2 and len(game.discardPile) == 1:
             return False
-        if (game.drawn == True) or game.discardPile[-1] >= 4:
+        if game.drawn or game.discardPile[-1] < 4:
             return False
         if game.discardPile[-1] <= 2:
             return False

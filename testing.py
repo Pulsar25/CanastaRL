@@ -1,4 +1,3 @@
-from rlcard.agents import DQNAgent
 import envutil
 import copy
 import pygame
@@ -9,15 +8,25 @@ from collections import OrderedDict
 n_observations = 250
 n_actions = 50
 
-file = open("2episode999model2.pkl", "rb")
-model = pickle.load(file)
+file = open("3episode999model1.pkl", "rb")
+model1 = pickle.load(file)
+file.close()
+file = open("3episode999model2.pkl", "rb")
+model2 = pickle.load(file)
+file.close()
+file = open("3episode999model3.pkl", "rb")
+model3 = pickle.load(file)
+file.close()
+file = open("3episode999model4.pkl", "rb")
+model4 = pickle.load(file)
 file.close()
 
 
-models = [model, model, model, model, model, model]
+
+computer_models = [model1, model1, model1, model1, model1, model1]
 
 
-def runGame(predictfunction, plays):
+def runGame(predictFunction, plays):
     teams = 3
     decks = 3
     handSize = 13
@@ -25,7 +34,7 @@ def runGame(predictfunction, plays):
     game = envutil.Game(teams, decks, handSize)
     gameStates = [copy.deepcopy(game)]
     while True:
-        chosen = predictfunction(game)
+        chosen, _ = predictFunction(game)
         chosen = envutil.numToMove(chosen)
         envutil.executeMove(game.players[game.turn], game, chosen)
         movesMade.append(chosen)
@@ -37,8 +46,11 @@ def runGame(predictfunction, plays):
     return gameStates, movesMade
 
 
-def predict(game):
-    global models
+def predict(game, models=None):
+    global computer_models
+
+    if models == None:
+        models = computer_models
 
     def _get_legal_actions():
         legal_actions = [
@@ -62,7 +74,7 @@ def predict(game):
     output["legal_actions"] = _get_legal_actions()
     output["raw_obs"] = output["obs"]
     output["raw_legal_actions"] = list(output["legal_actions"].keys())
-    prediction, q_values = models[game.turn].step(output, testing=True)
+    prediction, q_values = models[game.turn % len(models)].step(output, testing=True)
     return prediction, q_values
 
 
@@ -120,7 +132,7 @@ def run_user_game():
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
-            chosen, q_values = predict(game)
+            chosen, q_values = predict(game,models=[model1,model2,model3,model4])
             q_values = sorted(
                 [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
                 reverse=True,
@@ -161,7 +173,6 @@ def run_model_game():
     screen = pygame.display.set_mode((1280, 720))
     clock = pygame.time.Clock()
     running = True
-    dt = 0
 
     state = 0
     last = None
@@ -266,4 +277,4 @@ def run_model_game():
     pygame.quit()
 
 
-run_user_game()
+run_model_game()
