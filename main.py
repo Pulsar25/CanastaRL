@@ -13,10 +13,9 @@ import matplotlib
 import torch
 
 
-is_ipython = 'inline' in matplotlib.get_backend()
+is_ipython = "inline" in matplotlib.get_backend()
 if is_ipython:
     from IPython import display
-
 
 
 env = canastaenv.CanastaEnv(resetScoreLog=True)
@@ -28,7 +27,7 @@ agent = DQNAgent(
     epsilon_decay_steps=1000,
     learning_rate=0.01,
     train_every=1,
-    device="cuda:0"
+    device="cuda:0",
 )
 agent2 = DQNAgent(
     num_actions=env.num_actions,
@@ -37,19 +36,21 @@ agent2 = DQNAgent(
     epsilon_decay_steps=1000,
     learning_rate=0.01,
     train_every=1,
-    device="cuda:0"
+    device="cuda:0",
 )
 
 randomAgent = RandomAgent(
     num_actions=env.num_actions,
 )
 
-env.set_agents([agent,agent2,randomAgent,agent,agent2,randomAgent])
+env.set_agents([agent, agent2, randomAgent, agent, agent2, randomAgent])
 playerScoreLog = np.zeros((6,))
 maxScores = []
+
+
 def runWithTrajectories(_):
     global playerScoreLog
-    trajectories,payoffs,maxScore = env.run(is_training=True)
+    trajectories, payoffs, maxScore = env.run(is_training=True)
     # Reorganaize the data to be state, action, reward, next_state, done
     trajectories = reorganize(trajectories, payoffs)
     # Feed transitions into agent memory, and train the agent
@@ -58,17 +59,18 @@ def runWithTrajectories(_):
         agent2.feed(ts)
     return payoffs, maxScore
 
+
 def plot_durations(show_result=False):
     global maxScores
     plt.figure(1)
     durations_t = torch.tensor(maxScores, dtype=torch.float)
     if show_result:
-        plt.title('Result')
+        plt.title("Result")
     else:
         plt.clf()
-        plt.title('Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Score')
+        plt.title("Training...")
+    plt.xlabel("Episode")
+    plt.ylabel("Score")
     plt.plot(durations_t.numpy())
     # Take 100 episode averages and plot them too
     if len(durations_t) >= 100:
@@ -83,6 +85,7 @@ def plot_durations(show_result=False):
             display.clear_output(wait=True)
         else:
             display.display(plt.gcf())
+
 
 def main(multithread=True):
     for episode in range(1000):
@@ -109,6 +112,7 @@ def main(multithread=True):
     plot_durations(show_result=True)
     plt.show(block=True)
 
+
 if __name__ == "__main__":
     main(multithread=False)
-    #cProfile.run("main(multithread=False)")
+    # cProfile.run("main(multithread=False)")

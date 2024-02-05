@@ -14,19 +14,20 @@ model = pickle.load(file)
 file.close()
 
 
-models = [model,model,model,model,model,model]
+models = [model, model, model, model, model, model]
 
-def runGame(predictfunction,plays):
+
+def runGame(predictfunction, plays):
     teams = 3
     decks = 3
     handSize = 13
     movesMade = []
-    game = envutil.Game(teams,decks,handSize)
+    game = envutil.Game(teams, decks, handSize)
     gameStates = [copy.deepcopy(game)]
     while True:
         chosen = predictfunction(game)
         chosen = envutil.numToMove(chosen)
-        envutil.executeMove(game.players[game.turn],game,chosen)
+        envutil.executeMove(game.players[game.turn], game, chosen)
         movesMade.append(chosen)
         gameStates.append(copy.deepcopy(game))
         if game.finished or game.turns >= plays:
@@ -35,22 +36,35 @@ def runGame(predictfunction,plays):
             break
     return gameStates, movesMade
 
+
 def predict(game):
     global models
+
     def _get_legal_actions():
-        legal_actions = [i for i in range(50) if envutil.checkLegal(game.get_current_player(),game,envutil.numToMove(i))]
+        legal_actions = [
+            i
+            for i in range(50)
+            if envutil.checkLegal(game.get_current_player(), game, envutil.numToMove(i))
+        ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)
+
     output = {}
-    output['obs'] = np.array(
-        envutil.nodesConversion(game.get_current_player().hand, game.get_current_player().board,
-                                game.get_current_player().game.discardPile,
-                                game.get_current_player().game.drawn, game.get_current_player()))
-    output['legal_actions'] = _get_legal_actions()
-    output['raw_obs'] = output['obs']
-    output['raw_legal_actions'] = list(output['legal_actions'].keys())
-    prediction, q_values = (models[game.turn].step(output,testing=True))
+    output["obs"] = np.array(
+        envutil.nodesConversion(
+            game.get_current_player().hand,
+            game.get_current_player().board,
+            game.get_current_player().game.discardPile,
+            game.get_current_player().game.drawn,
+            game.get_current_player(),
+        )
+    )
+    output["legal_actions"] = _get_legal_actions()
+    output["raw_obs"] = output["obs"]
+    output["raw_legal_actions"] = list(output["legal_actions"].keys())
+    prediction, q_values = models[game.turn].step(output, testing=True)
     return prediction, q_values
+
 
 def run_user_game():
     print()
@@ -58,14 +72,14 @@ def run_user_game():
     teams = 3
     decks = 3
     handSize = 13
-    game = envutil.Game(teams,decks,handSize)
+    game = envutil.Game(teams, decks, handSize)
     while True:
         print("Player " + str(game.turn + 1) + " playing")
         text = ""
         text += "P" + str(1) + " Hand: "
         hand = ""
         for i in range(15):
-            hand += ((numToCard(i) + " ") * game.players[0].hand[i])
+            hand += (numToCard(i) + " ") * game.players[0].hand[i]
         text += hand
         print(text)
         for player in range(3):
@@ -74,24 +88,45 @@ def run_user_game():
                 text = "> "
             text += "P" + str(player + 1) + " Board: "
             for pile in game.players[player].board.canastas:
-                text += "*(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(
-                    pile.jokers) + "J, " + str(pile.twos) + "Twos)*  "
+                text += (
+                    "*("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)*  "
+                )
             for pile in game.players[player].board.piles:
-                text += "(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(pile.jokers) + "J, " + str(
-                    pile.twos) + "Twos)  "
+                text += (
+                    "("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)  "
+                )
             print(text)
         if len(game.discardPile) > 0:
             print(numToCard(game.discardPile[-1]))
         if game.turn % 6 == 0:
             chosen = input("Enter move ")
-            while not envutil.checkLegal(game.players[0],game,chosen):
+            while not envutil.checkLegal(game.players[0], game, chosen):
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
             chosen, q_values = predict(game)
-            q_values = sorted([(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],reverse=True)
+            q_values = sorted(
+                [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
+                reverse=True,
+            )
             chosen = envutil.numToMove(chosen)
-            print("Player " + str(game.turn+1) + " chose " + chosen)
+            print("Player " + str(game.turn + 1) + " chose " + chosen)
             text = ""
             for i in range(5):
                 text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
@@ -103,6 +138,7 @@ def run_user_game():
             break
         envutil.executeMove(game.players[game.turn % 6], game, chosen)
         print()
+
 
 def numToCard(n):
     if n == 1:
@@ -116,6 +152,7 @@ def numToCard(n):
     if n == 14:
         return "A"
     return str(n)
+
 
 def run_model_game():
     print("Started Game")
@@ -136,9 +173,13 @@ def run_model_game():
 
         screen.fill("black")
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_RIGHTBRACKET] and (last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1):
+        if keys[pygame.K_RIGHTBRACKET] and (
+            last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1
+        ):
             state += 1
-        if keys[pygame.K_LEFTBRACKET] and (last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1):
+        if keys[pygame.K_LEFTBRACKET] and (
+            last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1
+        ):
             state -= 1
         last = keys[pygame.K_RIGHTBRACKET] or keys[pygame.K_LEFTBRACKET]
         if state >= len(states):
@@ -157,7 +198,7 @@ def run_model_game():
             text += "P" + str(player + 1) + " Hand: "
             hand = ""
             for i in range(15):
-                hand += ((numToCard(i) + " ")* states[state].players[player].hand[i])
+                hand += (numToCard(i) + " ") * states[state].players[player].hand[i]
             text += hand
             font1 = pygame.font.SysFont(text, 36)
             img1 = font1.render(text, True, "white")
@@ -170,9 +211,29 @@ def run_model_game():
             text += "P" + str(player + 1) + " Board: "
             board = ""
             for pile in states[state].players[player].board.canastas:
-                text += "*(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(pile.jokers) + "J, " + str(pile.twos) + "Twos)*  "
+                text += (
+                    "*("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)*  "
+                )
             for pile in states[state].players[player].board.piles:
-                text += "(" + numToCard(pile.cardType) + ", " + str(pile.count) + ", " + str(pile.jokers) + "J, " + str(pile.twos) + "Twos)  "
+                text += (
+                    "("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)  "
+                )
             font1 = pygame.font.SysFont(text, 36)
             img1 = font1.render(text, True, "white")
             screen.blit(img1, (20, 240 + player * 60))
@@ -186,8 +247,10 @@ def run_model_game():
             img1 = font1.render(numToCard(states[state].discardPile[-1]), True, "white")
             screen.blit(img1, (20, 400))
 
-            font1 = pygame.font.SysFont(numToCard(states[state].discardPile[0: -1]), 36)
-            img1 = font1.render(numToCard(states[state].discardPile[0:-1]), True, "white")
+            font1 = pygame.font.SysFont(numToCard(states[state].discardPile[0:-1]), 36)
+            img1 = font1.render(
+                numToCard(states[state].discardPile[0:-1]), True, "white"
+            )
             screen.blit(img1, (20, 425))
 
         font1 = pygame.font.SysFont(str(state), 36)
@@ -201,5 +264,6 @@ def run_model_game():
             timeDown = 0
 
     pygame.quit()
+
 
 run_user_game()
