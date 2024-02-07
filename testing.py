@@ -22,7 +22,6 @@ model4 = pickle.load(file)
 file.close()
 
 
-
 computer_models = [model1, model1, model1, model1, model1, model1]
 
 
@@ -42,6 +41,8 @@ def runGame(predictFunction, plays):
         if game.finished or game.turns >= plays:
             if game.finished:
                 print("Finished Game")
+            else:
+                print("Broke Game")
             break
     return gameStates, movesMade
 
@@ -128,7 +129,7 @@ def run_user_game():
             print(numToCard(game.discardPile[-1]))
         if game.turn % 6 == 0:
             chosen = input("Enter move ")
-            while not envutil.checkLegal(game.players[0], game, chosen):
+            while chosen == "" or (not envutil.checkLegal(game.players[0], game, chosen)):
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
@@ -276,5 +277,4 @@ def run_model_game():
 
     pygame.quit()
 
-
-run_model_game()
+run_user_game()

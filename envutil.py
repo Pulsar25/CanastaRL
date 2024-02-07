@@ -399,18 +399,18 @@ def checkLegal(player: Player, game, move):
     elif move == "wildJ15":
         return False
     elif move == "pickupPileJ":
+        if game.drawn:
+            return False
         if len(game.discardPile) == 0:
             return False
-        if len(game.discardPile) == 1 and handSize == 1:
-            return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1]:
+            if i.cardType == game.discardPile[-1] and (handSize >= 2 or len(player.board.canastas) >= 2):
                 return True
-        if handSize <= 2 and len(game.discardPile) == 1:
+        if handSize <= 3 and len(game.discardPile) == 1:
             return False
-        if game.discardPile[-1] <= 2:
+        if handSize <= 2 and len(game.discardPile) == 2:
             return False
-        if game.drawn or game.discardPile[-1] < 4:
+        if game.discardPile[-1] < 4:
             return False
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
@@ -418,18 +418,18 @@ def checkLegal(player: Player, game, move):
             player.hand[1] >= 1 and player.hand[game.discardPile[-1]]
         ) >= 1 or player.hand[game.discardPile[-1]] >= 2
     elif move == "pickupPile2":
+        if game.drawn:
+            return False
         if len(game.discardPile) == 0:
             return False
-        if len(game.discardPile) == 1 and handSize == 1:
-            return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1]:
+            if i.cardType == game.discardPile[-1] and (handSize > 1 or len(player.board.canastas) >= 2):
                 return True
-        if handSize <= 2 and len(game.discardPile) == 1:
+        if handSize <= 3 and len(game.discardPile) == 1:
             return False
-        if game.drawn or game.discardPile[-1] < 4:
+        if handSize <= 2 and len(game.discardPile) == 2:
             return False
-        if game.discardPile[-1] <= 2:
+        if game.discardPile[-1] < 4:
             return False
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
@@ -442,6 +442,8 @@ def checkLegal(player: Player, game, move):
         playedCard = int(move[5:])
         if handSize <= 2 and len(player.board.canastas) < 2:
             return False
+        if handSize == 1:
+            return False
         if player.hand[1] <= 0:
             return False
         for pile in player.board.piles:
@@ -453,6 +455,8 @@ def checkLegal(player: Player, game, move):
             return False
         playedCard = int(move[5:])
         if handSize <= 2 and len(player.board.canastas) < 2:
+            return False
+        if handSize == 1:
             return False
         if player.hand[2] <= 0:
             return False
@@ -468,7 +472,7 @@ def checkLegal(player: Player, game, move):
         playedCard = int(move[1::])
         if player.hand[playedCard] <= 0:
             return False
-        if len(player.board.canastas) >= 2:
+        if len(player.board.canastas) >= 2 or ((len(player.board.canastas) == 1) and (len([p for p in player.board.piles if p.cardType == playedCard]) >= 1) and ([p for p in player.board.piles if p.cardType == playedCard][0].getTotalCount() >= 6)):
             return True
         else:
             return handSize > 1
@@ -622,11 +626,6 @@ def executeMove(player: Player, game: Game, move):
         game.drawn = False
         if int(move[1::]) <= 2:
             game.frozen = True
-        handSize = 0
-        for i in range(1, 15):
-            handSize += player.hand[i]
-        if handSize == 0:
-            game.finished = True
     else:
         done = False
         for pile in player.board.piles:
@@ -677,9 +676,6 @@ def executeMove(player: Player, game: Game, move):
     for i in range(5):
         for j in range(1, 15):
             game.players[(start + i + 1) % 6].knowledge[4 - i][j] += knowledgeUpdate[j]
-    for canasta in player.board.canastas:
-        canasta.count += player.hand[canasta.cardType]
-        player.hand[canasta.cardType] = 0
     handSize = 0
     for i in range(1, 15):
         handSize += player.hand[i]
