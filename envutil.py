@@ -404,7 +404,9 @@ def checkLegal(player: Player, game, move):
         if len(game.discardPile) == 0:
             return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1] and (handSize >= 2 or len(player.board.canastas) >= 2):
+            if i.cardType == game.discardPile[-1] and (
+                handSize >= 2 or len(player.board.canastas) >= 2
+            ):
                 return True
         if handSize <= 3 and len(game.discardPile) == 1:
             return False
@@ -423,7 +425,9 @@ def checkLegal(player: Player, game, move):
         if len(game.discardPile) == 0:
             return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1] and (handSize > 1 or len(player.board.canastas) >= 2):
+            if i.cardType == game.discardPile[-1] and (
+                handSize > 1 or len(player.board.canastas) >= 2
+            ):
                 return True
         if handSize <= 3 and len(game.discardPile) == 1:
             return False
@@ -441,6 +445,10 @@ def checkLegal(player: Player, game, move):
             return False
         playedCard = int(move[5:])
         if handSize <= 2 and len(player.board.canastas) < 2:
+            if len(player.board.canastas) == 1:
+                for pile in player.board.piles:
+                    if pile.cardType == playedCard and pile.getTotalCount() == 6:
+                        return handSize == 2 and player.hand[1] >= 1 and pile.twos + pile.jokers + 1 <= pile.count
             return False
         if handSize == 1:
             return False
@@ -455,6 +463,10 @@ def checkLegal(player: Player, game, move):
             return False
         playedCard = int(move[5:])
         if handSize <= 2 and len(player.board.canastas) < 2:
+            if len(player.board.canastas) == 1:
+                for pile in player.board.piles:
+                    if pile.cardType == playedCard and pile.getTotalCount() == 6:
+                        return handSize == 2 and player.hand[2] >= 1 and pile.twos + pile.jokers + 1 <= pile.count
             return False
         if handSize == 1:
             return False
@@ -472,7 +484,16 @@ def checkLegal(player: Player, game, move):
         playedCard = int(move[1::])
         if player.hand[playedCard] <= 0:
             return False
-        if len(player.board.canastas) >= 2 or ((len(player.board.canastas) == 1) and (len([p for p in player.board.piles if p.cardType == playedCard]) >= 1) and ([p for p in player.board.piles if p.cardType == playedCard][0].getTotalCount() >= 6)):
+        if len(player.board.canastas) >= 2 or (
+            (len(player.board.canastas) == 1)
+            and (len([p for p in player.board.piles if p.cardType == playedCard]) >= 1)
+            and (
+                [p for p in player.board.piles if p.cardType == playedCard][
+                    0
+                ].getTotalCount()
+                >= 6
+            )
+        ):
             return True
         else:
             return handSize > 1

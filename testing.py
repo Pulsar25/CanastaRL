@@ -8,16 +8,16 @@ from collections import OrderedDict
 n_observations = 250
 n_actions = 50
 
-file = open("3episode999model1.pkl", "rb")
+file = open("4episode1990model1.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("3episode999model2.pkl", "rb")
+file = open("4episode1990model2.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("3episode999model3.pkl", "rb")
+file = open("4episode1990model3.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("3episode999model4.pkl", "rb")
+file = open("4episode1990model4.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -129,11 +129,13 @@ def run_user_game():
             print(numToCard(game.discardPile[-1]))
         if game.turn % 6 == 0:
             chosen = input("Enter move ")
-            while chosen == "" or (not envutil.checkLegal(game.players[0], game, chosen)):
+            while chosen == "" or (
+                not envutil.checkLegal(game.players[0], game, chosen)
+            ):
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
-            chosen, q_values = predict(game,models=[model1,model2,model3,model4])
+            chosen, q_values = predict(game, models=[model1, model2, model3, model4])
             q_values = sorted(
                 [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
                 reverse=True,
@@ -145,12 +147,15 @@ def run_user_game():
                 text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
             print(text)
             _ = input("Click enter when ready to move on")
-        if game.finished:
-            if game.finished:
-                print("Finished Game")
-            break
         envutil.executeMove(game.players[game.turn % 6], game, chosen)
         print()
+        if game.finished:
+            print("Finished Game")
+            for i in range(3):
+                print("Player " + str(i+1) + " Score: " + str(
+                    game.players[i].board.getScore() - game.players[i].getHandScore() - game.players[
+                        i + 3].getHandScore()))
+            break
 
 
 def numToCard(n):
@@ -276,5 +281,84 @@ def run_model_game():
             timeDown = 0
 
     pygame.quit()
+
+def tournament(files,show=True):
+    agent_models = []
+    for file in files:
+        file = open(file, "rb")
+        loaded_model = pickle.load(file)
+        file.close()
+        agent_models.append(loaded_model)
+
+    print()
+    print("Human player will play player 1")
+    teams = 3
+    decks = 3
+    handSize = 13
+    game = envutil.Game(teams, decks, handSize)
+    while True:
+        print("Player " + str(game.turn + 1) + " playing")
+        text = ""
+        text += "P" + str(1) + " Hand: "
+        hand = ""
+        for i in range(15):
+            hand += (numToCard(i) + " ") * game.players[0].hand[i]
+        text += hand
+        print(text)
+        for player in range(3):
+            text = ""
+            if player == game.turn % 3:
+                text = "> "
+            text += "P" + str(player + 1) + " Board: "
+            for pile in game.players[player].board.canastas:
+                text += (
+                    "*("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)*  "
+                )
+            for pile in game.players[player].board.piles:
+                text += (
+                    "("
+                    + numToCard(pile.cardType)
+                    + ", "
+                    + str(pile.count)
+                    + ", "
+                    + str(pile.jokers)
+                    + "J, "
+                    + str(pile.twos)
+                    + "Twos)  "
+                )
+            print(text)
+        if len(game.discardPile) > 0:
+            print(numToCard(game.discardPile[-1]))
+        chosen, q_values = predict(game, models=agent_models)
+        q_values = sorted(
+            [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
+            reverse=True,
+        )
+        chosen = envutil.numToMove(chosen)
+        print("Player " + str(game.turn + 1) + " chose " + chosen)
+        print("Agent: " + files[game.turn % len(files)])
+        text = ""
+        for i in range(5):
+            text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
+        print(text)
+        _ = input("Click enter when ready to move on")
+        envutil.executeMove(game.players[game.turn % 6], game, chosen)
+        print()
+        if game.finished:
+            print("Finished Game")
+            for i in range(3):
+                print("Player " + str(i) + " Score: " + str(
+                    game.players[i].board.getScore() - game.players[i].getHandScore() - game.players[
+                        i + 3].getHandScore()))
+            break
+
 
 run_user_game()
