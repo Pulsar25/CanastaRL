@@ -728,7 +728,7 @@ def nodesConversion(hand, board, discardPile, drawn, player):
     for i in range(14):
         nodes.append(0)
     for card in discardPile:
-        nodes[card - 2] += 1
+        nodes[card - 2] += 1 #TODO FIX THIS
     curr = len(nodes)
     for i in range(14):
         nodes.append(0)

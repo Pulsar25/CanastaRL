@@ -4,6 +4,8 @@ import pygame
 import numpy as np
 import pickle
 from collections import OrderedDict
+import multiprocessing as mp
+import pandas as pd
 
 n_observations = 250
 n_actions = 50
@@ -152,9 +154,16 @@ def run_user_game():
         if game.finished:
             print("Finished Game")
             for i in range(3):
-                print("Player " + str(i+1) + " Score: " + str(
-                    game.players[i].board.getScore() - game.players[i].getHandScore() - game.players[
-                        i + 3].getHandScore()))
+                print(
+                    "Player "
+                    + str(i + 1)
+                    + " Score: "
+                    + str(
+                        game.players[i].board.getScore()
+                        - game.players[i].getHandScore()
+                        - game.players[i + 3].getHandScore()
+                    )
+                )
             break
 
 
@@ -282,83 +291,133 @@ def run_model_game():
 
     pygame.quit()
 
-def tournament(files,show=True):
+
+def tournament_game(agent_models):
+    teams = 3
+    decks = 3
+    handSize = 13
+    game = envutil.Game(teams, decks, handSize)
+    history = []
+    while True:
+        chosen, q_values = predict(game, models=agent_models)
+        history.append((copy.deepcopy(game), chosen, q_values))
+        chosen = envutil.numToMove(chosen)
+        envutil.executeMove(game.players[game.turn % 6], game, chosen)
+        if game.finished:
+            break
+    scores = []
+    for i in range(3):
+        scores.append(
+            game.players[i].board.getScore()
+            - game.players[i].getHandScore()
+            - game.players[i + 3].getHandScore()
+        )
+    return scores, history
+
+
+def tournament(games, files):
     agent_models = []
     for file in files:
         file = open(file, "rb")
         loaded_model = pickle.load(file)
         file.close()
         agent_models.append(loaded_model)
-
-    print()
-    print("Human player will play player 1")
-    teams = 3
-    decks = 3
-    handSize = 13
-    game = envutil.Game(teams, decks, handSize)
-    while True:
-        print("Player " + str(game.turn + 1) + " playing")
-        text = ""
-        text += "P" + str(1) + " Hand: "
-        hand = ""
-        for i in range(15):
-            hand += (numToCard(i) + " ") * game.players[0].hand[i]
-        text += hand
-        print(text)
-        for player in range(3):
-            text = ""
-            if player == game.turn % 3:
-                text = "> "
-            text += "P" + str(player + 1) + " Board: "
-            for pile in game.players[player].board.canastas:
-                text += (
-                    "*("
-                    + numToCard(pile.cardType)
-                    + ", "
-                    + str(pile.count)
-                    + ", "
-                    + str(pile.jokers)
-                    + "J, "
-                    + str(pile.twos)
-                    + "Twos)*  "
-                )
-            for pile in game.players[player].board.piles:
-                text += (
-                    "("
-                    + numToCard(pile.cardType)
-                    + ", "
-                    + str(pile.count)
-                    + ", "
-                    + str(pile.jokers)
-                    + "J, "
-                    + str(pile.twos)
-                    + "Twos)  "
-                )
-            print(text)
-        if len(game.discardPile) > 0:
-            print(numToCard(game.discardPile[-1]))
-        chosen, q_values = predict(game, models=agent_models)
-        q_values = sorted(
-            [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
-            reverse=True,
-        )
-        chosen = envutil.numToMove(chosen)
-        print("Player " + str(game.turn + 1) + " chose " + chosen)
-        print("Agent: " + files[game.turn % len(files)])
-        text = ""
-        for i in range(5):
-            text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
-        print(text)
-        _ = input("Click enter when ready to move on")
-        envutil.executeMove(game.players[game.turn % 6], game, chosen)
-        print()
-        if game.finished:
-            print("Finished Game")
-            for i in range(3):
-                print("Player " + str(i) + " Score: " + str(
-                    game.players[i].board.getScore() - game.players[i].getHandScore() - game.players[
-                        i + 3].getHandScore()))
-            break
+    total_scores = [0] * 3
+    for i in range(games):
+        results, _ = tournament_game(agent_models)
+        for j in range(3):
+            total_scores[j] += results[j]
+    for j in range(3):
+        total_scores[j] /= games
+    print("Final Avg Scores: " + str(total_scores))
 
 
-run_user_game()
+# 0-13 discard Pile
+# 14-97 players hands 1-14
+# 98-103 board (dirty,clean)
+# 104-202 boards 3 boards, 11 cards, card count, two count j count
+# 203 turn
+
+output_labels = []
+for i in range(1,15):
+    output_labels.append("discardPile" + str(i))
+for i in range(1,7):
+    for j in range(1,15):
+        output_labels.append("player" + str(i) + "cardNum" + str(j))
+for i in range(1,4):
+    output_labels.append("board" + str(i) + "dirties")
+    output_labels.append("board" + str(i) + "cleans")
+for i in range(1,4):
+    for j in range(4,15):
+        output_labels.append("board" + str(i) + "pile" + str(j) + "cardcount")
+        output_labels.append("board" + str(i) + "pile" + str(j) + "twos")
+        output_labels.append("board" + str(i) + "pile" + str(j) + "jokers")
+output_labels.append("turn")
+output_labels.append("move")
+output_labels.append("finalscores1")
+output_labels.append("finalscores2")
+output_labels.append("finalscores3")
+for i in range(1,52):
+    output_labels.append("q_value" + str(i))
+
+def game_to_data(game: envutil.Game) -> [int]:
+    output = []
+    discardPile = game.discardPile
+    for i in range(14):
+        output.append(0)
+    for card in discardPile:
+        output[card - 2] += 1
+    for player in game.players:
+        for i in range(1, 15):
+            output.append(player.hand[i])
+    for board in game.boards:
+        dirtyCount = 0
+        cleanCount = 0
+        for canasta in board.canastas:
+            if canasta.isDirty:
+                dirtyCount += 1
+            else:
+                cleanCount += 1
+        output.append(dirtyCount)
+        output.append(cleanCount)
+    curr = len(output)
+    for i in range(99):
+        output.append(0)
+    for board_i in range(len(game.boards)):
+        for pile in game.boards[board_i].canastas + game.boards[board_i].piles:
+            output[curr + 33 * board_i + 3 * (pile.cardType - 4)] = pile.count
+            output[curr + 33 * board_i + 3 * (pile.cardType - 4) + 1] = pile.twos
+            output[curr + 33 * board_i + 3 * (pile.cardType - 4) + 2] = pile.jokers
+    output.append(game.turn % 6)
+    return output
+
+
+def get_data(games, files):
+    agent_models = []
+    for file in files:
+        file = open(file, "rb")
+        loaded_model = pickle.load(file)
+        file.close()
+        agent_models.append(loaded_model)
+    data = []
+    output = [tournament_game(agent_models=agent_models) for _ in range(games)]
+    for i in output:
+        scores, history = i
+        for state, move, q_values in history:
+            data.append(game_to_data(state) + [move] + scores + list(q_values))
+    return data
+
+def export_to_csv(games, files,filepath):
+    global output_labels
+    data = get_data(games,files)
+    df = pd.DataFrame(data,columns=output_labels)
+    df.to_csv(filepath, index=False)
+
+export_to_csv(10,[
+        "4episode1990model1.pkl",
+        "4episode1990model2.pkl",
+        "bestsofar.pkl",
+        "4episode1990model3.pkl",
+        "4episode1990model4.pkl",
+        "2episode3model2.pkl",
+    ],"testoutput1.csv")
