@@ -535,9 +535,9 @@ def numToMove(num):
     if num == 50:
         return "goOut"
 
-
 def executeMove(player: Player, game: Game, move):
     if game.turns >= 360:
+        print("BROKE")
         game.finished = True
     knowledgeUpdate = defaultdict(int)
     while player.hand[15] > 0:
@@ -728,23 +728,25 @@ def nodesConversion(hand, board, discardPile, drawn, player):
     for i in range(14):
         nodes.append(0)
     for card in discardPile:
-        nodes[card - 2] += 1 #TODO FIX THIS
+        if card == 15:
+            continue
+        nodes[card - 1] += 1
     curr = len(nodes)
     for i in range(14):
         nodes.append(0)
-    if len(discardPile) > 0:
-        nodes[discardPile[-1] + curr - 2] = 1
+    if len(discardPile) > 0 and discardPile[-1] != 15:
+        nodes[discardPile[-1] + curr - 1] = 1
     for i in range(1, 15):
-        nodes.append(hand[i] ** 2)
-    dirtyCount = 0
-    cleanCount = 0
+        nodes.append(hand[i])
+    dirty_count = 0
+    clean_count = 0
     for canasta in board.canastas:
         if canasta.isDirty:
-            dirtyCount += 1
+            dirty_count += 1
         else:
-            cleanCount += 1
-    nodes.append(dirtyCount)
-    nodes.append(cleanCount)
+            clean_count += 1
+    nodes.append(dirty_count)
+    nodes.append(clean_count)
     curr = len(nodes)
     for i in range(4, 15):
         nodes.append(0)
@@ -761,7 +763,7 @@ def nodesConversion(hand, board, discardPile, drawn, player):
     nodes.append(player.game.turns)
     turn = player.game.turn
     curr = len(nodes)
-    for i in range(4, 26):
+    for i in range(4, 15):
         nodes.append(0)
     for pile in player.game.players[(turn + 1) % 6].board.piles:
         nodes[curr + pile.cardType - 4] = pile.getTotalCount()
@@ -775,4 +777,5 @@ def nodesConversion(hand, board, discardPile, drawn, player):
             nodes.append(player.knowledge[i][j])
     for i in range(6):
         nodes.append(player.game.players[(turn + i) % 6].getHandSize())
+
     return nodes

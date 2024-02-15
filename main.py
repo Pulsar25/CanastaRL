@@ -106,7 +106,7 @@ def plot_durations(show_result=False):
 
 
 def main(multithread=True):
-    for episode in range(2000):
+    for episode in range(2001):
         # Generate data from the environment
         if multithread:
             with mp.Pool(10) as pool:
@@ -117,20 +117,20 @@ def main(multithread=True):
         else:
             output = run_with_trajectories(0)
             maxScores.append(output[1])
-        print(episode)
 
         prefix = "4episode"
-        if episode % 10 == 0:
-            file = open(prefix + str(episode) + "model1" + ".pkl", "wb")
+        if episode % 100 == 0:
+            print(episode)
+            file = open("modelgen2/" + prefix + str(episode) + "model1" + ".pkl", "wb")
             pickle.dump(agent, file)
             file.close()
-            file = open(prefix + str(episode) + "model2" + ".pkl", "wb")
+            file = open("modelgen2/" + prefix + str(episode) + "model2" + ".pkl", "wb")
             pickle.dump(agent2, file)
             file.close()
-            file = open(prefix + str(episode) + "model3" + ".pkl", "wb")
+            file = open("modelgen2/" + prefix + str(episode) + "model3" + ".pkl", "wb")
             pickle.dump(agent3, file)
             file.close()
-            file = open(prefix + str(episode) + "model4" + ".pkl", "wb")
+            file = open("modelgen2/" + prefix + str(episode) + "model4" + ".pkl", "wb")
             pickle.dump(agent4, file)
             file.close()
 

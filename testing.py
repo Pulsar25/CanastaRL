@@ -339,16 +339,16 @@ def tournament(games, files):
 # 203 turn
 
 output_labels = []
-for i in range(1,15):
+for i in range(1, 15):
     output_labels.append("discardPile" + str(i))
-for i in range(1,7):
-    for j in range(1,15):
+for i in range(1, 7):
+    for j in range(1, 15):
         output_labels.append("player" + str(i) + "cardNum" + str(j))
-for i in range(1,4):
+for i in range(1, 4):
     output_labels.append("board" + str(i) + "dirties")
     output_labels.append("board" + str(i) + "cleans")
-for i in range(1,4):
-    for j in range(4,15):
+for i in range(1, 4):
+    for j in range(4, 15):
         output_labels.append("board" + str(i) + "pile" + str(j) + "cardcount")
         output_labels.append("board" + str(i) + "pile" + str(j) + "twos")
         output_labels.append("board" + str(i) + "pile" + str(j) + "jokers")
@@ -357,8 +357,10 @@ output_labels.append("move")
 output_labels.append("finalscores1")
 output_labels.append("finalscores2")
 output_labels.append("finalscores3")
-for i in range(1,52):
+output_labels.append("total_turns")
+for i in range(1, 52):
     output_labels.append("q_value" + str(i))
+
 
 def game_to_data(game: envutil.Game) -> [int]:
     output = []
@@ -389,6 +391,7 @@ def game_to_data(game: envutil.Game) -> [int]:
             output[curr + 33 * board_i + 3 * (pile.cardType - 4) + 1] = pile.twos
             output[curr + 33 * board_i + 3 * (pile.cardType - 4) + 2] = pile.jokers
     output.append(game.turn % 6)
+    output.append(game.turns)
     return output
 
 
@@ -407,17 +410,23 @@ def get_data(games, files):
             data.append(game_to_data(state) + [move] + scores + list(q_values))
     return data
 
-def export_to_csv(games, files,filepath):
+
+def export_to_csv(games, files, filepath):
     global output_labels
-    data = get_data(games,files)
-    df = pd.DataFrame(data,columns=output_labels)
+    data = get_data(games, files)
+    df = pd.DataFrame(data, columns=output_labels)
     df.to_csv(filepath, index=False)
 
-export_to_csv(10,[
+
+export_to_csv(
+    400,
+    [
         "4episode1990model1.pkl",
-        "4episode1990model2.pkl",
-        "bestsofar.pkl",
-        "4episode1990model3.pkl",
-        "4episode1990model4.pkl",
-        "2episode3model2.pkl",
-    ],"testoutput1.csv")
+        "4episode1990model1.pkl",
+        "4episode1990model1.pkl",
+        "4episode1990model1.pkl",
+        "4episode1990model1.pkl",
+        "4episode1990model1.pkl",
+    ],
+    "testoutput3.csv",
+)
