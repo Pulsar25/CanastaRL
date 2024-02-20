@@ -10,16 +10,16 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("4episode1990model1.pkl", "rb")
+file = open("modelgen2/4episode2000model1.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("4episode1990model2.pkl", "rb")
+file = open("modelgen2/4episode2000model1.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("4episode1990model3.pkl", "rb")
+file = open("modelgen2/4episode2000model1.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("4episode1990model4.pkl", "rb")
+file = open("modelgen2/4episode2000model1.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -37,7 +37,7 @@ def runGame(predictFunction, plays):
     while True:
         chosen, _ = predictFunction(game)
         chosen = envutil.numToMove(chosen)
-        envutil.executeMove(game.players[game.turn], game, chosen)
+        envutil.execute_move(game.players[game.turn], game, chosen)
         movesMade.append(chosen)
         gameStates.append(copy.deepcopy(game))
         if game.finished or game.turns >= plays:
@@ -149,7 +149,7 @@ def run_user_game():
                 text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
             print(text)
             _ = input("Click enter when ready to move on")
-        envutil.executeMove(game.players[game.turn % 6], game, chosen)
+        envutil.execute_move(game.players[game.turn % 6], game, chosen)
         print()
         if game.finished:
             print("Finished Game")
@@ -302,7 +302,7 @@ def tournament_game(agent_models):
         chosen, q_values = predict(game, models=agent_models)
         history.append((copy.deepcopy(game), chosen, q_values))
         chosen = envutil.numToMove(chosen)
-        envutil.executeMove(game.players[game.turn % 6], game, chosen)
+        envutil.execute_move(game.players[game.turn % 6], game, chosen)
         if game.finished:
             break
     scores = []
@@ -352,12 +352,12 @@ for i in range(1, 4):
         output_labels.append("board" + str(i) + "pile" + str(j) + "cardcount")
         output_labels.append("board" + str(i) + "pile" + str(j) + "twos")
         output_labels.append("board" + str(i) + "pile" + str(j) + "jokers")
+output_labels.append("total_turns")
 output_labels.append("turn")
 output_labels.append("move")
 output_labels.append("finalscores1")
 output_labels.append("finalscores2")
 output_labels.append("finalscores3")
-output_labels.append("total_turns")
 for i in range(1, 52):
     output_labels.append("q_value" + str(i))
 
@@ -417,16 +417,19 @@ def export_to_csv(games, files, filepath):
     df = pd.DataFrame(data, columns=output_labels)
     df.to_csv(filepath, index=False)
 
+run_user_game()
 
+"""
 export_to_csv(
-    400,
+    300,
     [
-        "4episode1990model1.pkl",
-        "4episode1990model1.pkl",
-        "4episode1990model1.pkl",
-        "4episode1990model1.pkl",
-        "4episode1990model1.pkl",
-        "4episode1990model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
+        "modelgen2/4episode2000model1.pkl",
     ],
     "testoutput3.csv",
 )
+"""

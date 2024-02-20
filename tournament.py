@@ -14,7 +14,7 @@ def runGame(predictfunction,plays,models):
     while True:
         chosen = predictfunction(game,models)
         chosen = envutil.numToMove(chosen)
-        envutil.executeMove(game.players[game.turn],game,chosen)
+        envutil.execute_move(game.players[game.turn], game, chosen)
         if game.finished or game.turns >= plays:
             if not game.finished:
                 print("Time Out Finish")
