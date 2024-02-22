@@ -11,6 +11,7 @@ import multiprocessing as mp
 import matplotlib
 import torch
 
+total_turns = 0
 
 is_ipython = "inline" in matplotlib.get_backend()
 if is_ipython:
@@ -22,36 +23,18 @@ agent = DQNAgent(
     num_actions=env.num_actions,
     state_shape=env.state_shape[0],
     mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
-    epsilon_decay_steps=500,
+    epsilon_decay_steps=200000,
     learning_rate=0.01,
-    train_every=1,
+    train_every=1000,
     device="cuda:0",
 )
 agent2 = DQNAgent(
     num_actions=env.num_actions,
     state_shape=env.state_shape[0],
     mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
-    epsilon_decay_steps=500,
+    epsilon_decay_steps=200000,
     learning_rate=0.01,
-    train_every=1,
-    device="cuda:0",
-)
-agent3 = DQNAgent(
-    num_actions=env.num_actions,
-    state_shape=env.state_shape[0],
-    mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
-    epsilon_decay_steps=500,
-    learning_rate=0.01,
-    train_every=1,
-    device="cuda:0",
-)
-agent4 = DQNAgent(
-    num_actions=env.num_actions,
-    state_shape=env.state_shape[0],
-    mlp_layers=[512, 512, 512, 512, 512, 512, 256, 256, 128, 128],
-    epsilon_decay_steps=500,
-    learning_rate=0.01,
-    train_every=1,
+    train_every=1000,
     device="cuda:0",
 )
 
@@ -59,22 +42,22 @@ randomAgent = RandomAgent(
     num_actions=env.num_actions,
 )
 
-env.set_agents([agent, agent2, randomAgent, agent3, agent4, randomAgent])
+env.set_agents([agent, agent, randomAgent, agent2, randomAgent, randomAgent])
 playerScoreLog = np.zeros((6,))
 maxScores = []
 
 
 def run_with_trajectories(_):
     global playerScoreLog
-    trajectories, payoffs, max_score = env.run(is_training=True)
+    global total_turns
+    trajectories, payoffs, max_score, game_turns = env.run(is_training=True)
     # Reorganize the data to be state, action, reward, next_state, done
     trajectories = reorganize(trajectories, payoffs)
+    total_turns += game_turns
     # Feed transitions into agent memory, and train the agent
     for ts in trajectories[0]:
         agent.feed(ts)
         agent2.feed(ts)
-        agent3.feed(ts)
-        agent4.feed(ts)
     return payoffs, max_score
 
 
@@ -120,18 +103,10 @@ def main(multithread=True):
 
         prefix = "4episode"
         if episode % 100 == 0:
-            print(episode)
-            file = open("modelgen2/" + prefix + str(episode) + "model1" + ".pkl", "wb")
+            print("Episode : " + str(episode))
+            print("Total Turns: " + str(total_turns) + "\n")
+            file = open("modelgen4/" + prefix + str(episode) + "model1" + ".pkl", "wb")
             pickle.dump(agent, file)
-            file.close()
-            file = open("modelgen2/" + prefix + str(episode) + "model2" + ".pkl", "wb")
-            pickle.dump(agent2, file)
-            file.close()
-            file = open("modelgen2/" + prefix + str(episode) + "model3" + ".pkl", "wb")
-            pickle.dump(agent3, file)
-            file.close()
-            file = open("modelgen2/" + prefix + str(episode) + "model4" + ".pkl", "wb")
-            pickle.dump(agent4, file)
             file.close()
 
         shuffle(env.agents)

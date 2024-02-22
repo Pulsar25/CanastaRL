@@ -4,7 +4,6 @@ import pygame
 import numpy as np
 import pickle
 from collections import OrderedDict
-import multiprocessing as mp
 import pandas as pd
 
 n_observations = 250
@@ -77,7 +76,7 @@ def predict(game, models=None):
     output["legal_actions"] = _get_legal_actions()
     output["raw_obs"] = output["obs"]
     output["raw_legal_actions"] = list(output["legal_actions"].keys())
-    prediction, q_values = models[game.turn % len(models)].step(output, testing=True)
+    prediction, q_values = models[game.turn % len(models)].eval_step(output)
     return prediction, q_values
 
 
@@ -417,19 +416,18 @@ def export_to_csv(games, files, filepath):
     df = pd.DataFrame(data, columns=output_labels)
     df.to_csv(filepath, index=False)
 
-run_user_game()
+#run_user_game()
 
-"""
+
 export_to_csv(
     300,
     [
-        "modelgen2/4episode2000model1.pkl",
-        "modelgen2/4episode2000model1.pkl",
-        "modelgen2/4episode2000model1.pkl",
-        "modelgen2/4episode2000model1.pkl",
-        "modelgen2/4episode2000model1.pkl",
-        "modelgen2/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
+        "modelgen4/4episode2000model1.pkl",
     ],
-    "testoutput3.csv",
+    "testoutput5.csv",
 )
-"""

@@ -16,6 +16,10 @@ class CanastaEnv(Env):
             self.winningScores = []
             self.playerScoreLog = [0] * 6
 
+    def run(self,is_training=False):
+        a,b = super().run(is_training=is_training)
+        return a, b, self.getMaxScore(), self.game.turns
+
     def getMaxScore(self):
         playerScores = [
             (
