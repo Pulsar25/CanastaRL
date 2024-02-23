@@ -9,16 +9,16 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("modelgen2/4episode2000model1.pkl", "rb")
+file = open("modelgen6/4episode100000model1.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("modelgen2/4episode2000model1.pkl", "rb")
+file = open("modelgen6/4episode90000model1.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("modelgen2/4episode2000model1.pkl", "rb")
+file = open("modelgen6/4episode80000model1.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("modelgen2/4episode2000model1.pkl", "rb")
+file = open("modelgen6/4episode70000model1.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -351,8 +351,8 @@ for i in range(1, 4):
         output_labels.append("board" + str(i) + "pile" + str(j) + "cardcount")
         output_labels.append("board" + str(i) + "pile" + str(j) + "twos")
         output_labels.append("board" + str(i) + "pile" + str(j) + "jokers")
-output_labels.append("total_turns")
 output_labels.append("turn")
+output_labels.append("total_turns")
 output_labels.append("move")
 output_labels.append("finalscores1")
 output_labels.append("finalscores2")
@@ -416,18 +416,19 @@ def export_to_csv(games, files, filepath):
     df = pd.DataFrame(data, columns=output_labels)
     df.to_csv(filepath, index=False)
 
-#run_user_game()
+run_user_game()
 
-
+"""
 export_to_csv(
     300,
     [
-        "modelgen4/4episode2000model1.pkl",
-        "modelgen4/4episode2000model1.pkl",
-        "modelgen4/4episode2000model1.pkl",
-        "modelgen4/4episode2000model1.pkl",
-        "modelgen4/4episode2000model1.pkl",
-        "modelgen4/4episode2000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
+        "modelgen6/4episode100000model1.pkl",
     ],
-    "testoutput5.csv",
+    "testoutput16.csv",
 )
+"""
