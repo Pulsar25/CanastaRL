@@ -9,16 +9,16 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("modelgen6/4episode100000model1.pkl", "rb")
+file = open("modelgen7/model10.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("modelgen6/4episode90000model1.pkl", "rb")
+file = open("modelgen7/model10.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("modelgen6/4episode80000model1.pkl", "rb")
+file = open("modelgen7/model10.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("modelgen6/4episode70000model1.pkl", "rb")
+file = open("modelgen7/model10.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -138,14 +138,14 @@ def run_user_game():
         else:
             chosen, q_values = predict(game, models=[model1, model2, model3, model4])
             q_values = sorted(
-                [(q_values[i], envutil.numToMove(i)) for i in range(len(q_values))],
+                [(q_values[i] * 100000, envutil.numToMove(i)) for i in range(len(q_values))],
                 reverse=True,
             )
             chosen = envutil.numToMove(chosen)
             print("Player " + str(game.turn + 1) + " chose " + chosen)
             text = ""
             for i in range(5):
-                text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:4] + "), "
+                text += "(" + q_values[i][1] + " : " + str(q_values[i][0])[0:10] + "), "
             print(text)
             _ = input("Click enter when ready to move on")
         envutil.execute_move(game.players[game.turn % 6], game, chosen)
@@ -416,19 +416,20 @@ def export_to_csv(games, files, filepath):
     df = pd.DataFrame(data, columns=output_labels)
     df.to_csv(filepath, index=False)
 
-run_user_game()
 
-"""
+#run_user_game()
+
+
 export_to_csv(
     300,
     [
-        "modelgen6/4episode100000model1.pkl",
-        "modelgen6/4episode100000model1.pkl",
-        "modelgen6/4episode100000model1.pkl",
-        "modelgen6/4episode100000model1.pkl",
-        "modelgen6/4episode100000model1.pkl",
-        "modelgen6/4episode100000model1.pkl",
+        "modelgen7/model10.pkl",
+        "modelgen7/model10.pkl",
+        "modelgen7/model10.pkl",
+        "modelgen7/model10.pkl",
+        "modelgen7/model10.pkl",
+        "modelgen7/model10.pkl",
     ],
-    "testoutput16.csv",
+    "testoutput20.csv",
 )
-"""
+

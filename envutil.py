@@ -220,7 +220,7 @@ class Game:
         self.teamsCount = teams
         self.decks = decks
         self.boards = []
-        self.players : List[Player] = [None] * (teams * 2)
+        self.players: List[Player] = [None] * (teams * 2)
         self.playersCount = None
         self.teamsCount = None
         self.turns = 0
@@ -387,7 +387,11 @@ def checkLegal(player: Player, game, move):
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
                     if pile.cardType == playedCard and pile.getTotalCount() == 6:
-                        return handSize == 2 and player.hand[1] >= 1 and pile.twos + pile.jokers + 1 <= pile.count
+                        return (
+                            handSize == 2
+                            and player.hand[1] >= 1
+                            and pile.twos + pile.jokers + 1 <= pile.count
+                        )
             return False
         if handSize == 1:
             return False
@@ -405,7 +409,11 @@ def checkLegal(player: Player, game, move):
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
                     if pile.cardType == playedCard and pile.getTotalCount() == 6:
-                        return handSize == 2 and player.hand[2] >= 1 and pile.twos + pile.jokers + 1 <= pile.count
+                        return (
+                            handSize == 2
+                            and player.hand[2] >= 1
+                            and pile.twos + pile.jokers + 1 <= pile.count
+                        )
             return False
         if handSize == 1:
             return False
