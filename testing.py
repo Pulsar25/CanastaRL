@@ -423,13 +423,13 @@ def export_to_csv(games, files, filepath):
 export_to_csv(
     300,
     [
-        "modelgen7/model10.pkl",
-        "modelgen7/model10.pkl",
-        "modelgen7/model10.pkl",
-        "modelgen7/model10.pkl",
-        "modelgen7/model10.pkl",
-        "modelgen7/model10.pkl",
+        "modelgen7/model7.pkl",
+        "modelgen7/model7.pkl",
+        "modelgen7/model7.pkl",
+        "modelgen7/model7.pkl",
+        "modelgen7/model7.pkl",
+        "modelgen7/model7.pkl",
     ],
-    "testoutput20.csv",
+    "testoutput21.csv",
 )
 
