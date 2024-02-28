@@ -4,7 +4,7 @@ import random
 from typing import List
 
 
-def getCardCount(i):
+def get_card_count(i):
     if i == 1:
         return 50
     if i == 2 or i == 14:
@@ -16,7 +16,7 @@ def getCardCount(i):
     return 0
 
 
-def generateDeck():
+def generate_deck():
     out = [1, 1, 2, 2, 2, 2, 3, 3, 15, 15]
     for i in range(4, 15):
         out += 4 * [i]
@@ -32,25 +32,27 @@ class BoardStack:
     twos = None
     count = None
 
-    def __init__(self, type, count):
-        self.cardType = type
+    def __init__(self, card_type, count):
+        self.cardType = card_type
         self.count = 0
         self.count = count
         self.jokers = 0
         self.twos = 0
 
-    def getScore(self):
+    def get_score(self):
         return (
-            self.jokers * 50 + self.twos * 20 + self.count * getCardCount(self.cardType)
+            self.jokers * 50
+            + self.twos * 20
+            + self.count * get_card_count(self.cardType)
         )
 
-    def isDirty(self):
+    def is_dirty(self):
         return not (self.twos == 0 and self.jokers == 0)
 
-    def getTotalCount(self):
+    def get_total_count(self):
         return self.jokers + self.twos + self.count
 
-    def getCardType(self):
+    def get_card_type(self):
         return self.cardType
 
     def __str__(self):
@@ -79,11 +81,11 @@ class Board:
         self.player1 = None
         self.player2 = None
 
-    def setPlayers(self, p1, p2):
+    def set_players(self, p1, p2):
         self.player1 = p1
         self.player2 = p2
 
-    def getScore(self, include_red_threes=False):
+    def get_score(self, include_red_threes=False):
         out = 0
         if include_red_threes:
             if len(self.piles) == 0 and len(self.canastas) == 0:
@@ -91,12 +93,12 @@ class Board:
             else:
                 out += 100 * self.redThrees
         for pile in self.piles:
-            out += pile.getScore()
-        out -= self.player1.getHandScore()
-        out -= self.player2.getHandScore()
+            out += pile.get_score()
+        out -= self.player1.get_hand_score()
+        out -= self.player2.get_hand_score()
         for canasta in self.canastas:
-            out += canasta.getScore()
-            if not canasta.isDirty():
+            out += canasta.get_score()
+            if not canasta.is_dirty():
                 out += 200
             out += 300
         return out
@@ -119,19 +121,19 @@ class Player:
             self.hand[card] += 1
         self.board = board
         self.game = game
-        self.knowledge = [defaultdict(int) for _ in range(5)]
+        self.knowledge = [defaultdict(int) for _ in range(game.playersCount - 1)]
         self.partner = None
 
-    def getHandSize(self):
+    def get_hand_size(self):
         out = 0
         for i in range(1, 15):
             out += self.hand[i]
         return out
 
-    def getHandScore(self):
+    def get_hand_score(self):
         out = 0
         for i in self.hand:
-            out += self.hand[i] * getCardCount(i)
+            out += self.hand[i] * get_card_count(i)
         if out == 0:
             out = -100
         return out
@@ -162,7 +164,7 @@ class Game:
             self.drawPile.reverse()
         if len(self.drawPile) == 0:
             self.finished = True
-            return 4
+            return 4  # apprently we give them a 4 when its over
         return self.drawPile.pop()
 
     def get_num_players(self):
@@ -174,7 +176,7 @@ class Game:
     def init_game(self):
         self.reset()
         return (
-            nodesConversion(
+            nodes_conversion(
                 self.players[0].hand,
                 self.players[0].board,
                 self.discardPile,
@@ -188,10 +190,10 @@ class Game:
         return self.finished
 
     def get_player_id(self):
-        return self.turn % 6
+        return self.turn % self.playersCount
 
     def get_state(self, player_id):
-        return nodesConversion(
+        return nodes_conversion(
             self.players[player_id].hand,
             self.players[player_id].board,
             self.discardPile,
@@ -202,17 +204,17 @@ class Game:
     def step(self, action):
         execute_move(self.players[self.get_player_id()], self, action)
         return (
-            nodesConversion(
-                self.players[self.turn % 6].hand,
-                self.players[self.turn % 6].board,
+            nodes_conversion(
+                self.players[self.turn % self.playersCount].hand,
+                self.players[self.turn % self.playersCount].board,
                 self.discardPile,
                 self.drawn,
-                self.players[self.turn % 6],
+                self.players[self.turn % self.playersCount],
             ),
-            self.turn % 6,
+            self.turn % self.playersCount,
         )
 
-    def __init__(self, teams, decks, handSize):
+    def __init__(self, teams, decks, hand_size):
         self.allow_step_back = False
         self.discardPile = []
         self.drawPile = []
@@ -229,53 +231,53 @@ class Game:
         self.frozen = False
         self.turn = 0
         self.finished = False
-        self.handSize = handSize
+        self.handSize = hand_size
         self.playersCount = teams * 2
         self.teamsCount = teams
         for k in range(decks):
-            self.drawPile += generateDeck()
+            self.drawPile += generate_deck()
         random.shuffle(self.drawPile)
         self.discardPile.append(self.draw())
         for i in range(teams):
-            playerOneHand = []
-            playerTwoHand = []
-            for j in range(handSize):
-                playerOneHand.append(self.draw())
-                playerTwoHand.append(self.draw())
+            player_one_hand = []
+            player_two_hand = []
+            for j in range(hand_size):
+                player_one_hand.append(self.draw())
+                player_two_hand.append(self.draw())
             board = Board()
             team = Team()
-            playerOne = Player(playerOneHand, self, board)
-            playerTwo = Player(playerTwoHand, self, board)
-            playerOne.partner = playerTwo
-            playerTwo.partner = playerOne
-            board.setPlayers(playerOne, playerTwo)
-            playerOne.teamate = playerTwo
-            playerTwo.teamate = playerOne
-            playerTwo.game = self
-            playerOne.game = self
-            team.playerOne = playerOne
-            team.playerTwo = playerTwo
+            player_one = Player(player_one_hand, self, board)
+            player_two = Player(player_two_hand, self, board)
+            player_one.partner = player_two
+            player_two.partner = player_one
+            board.set_players(player_one, player_two)
+            player_one.teamate = player_two
+            player_two.teamate = player_one
+            player_two.game = self
+            player_one.game = self
+            team.playerOne = player_one
+            team.playerTwo = player_two
             team.board = board
-            playerOne.team = team
-            playerTwo.team = team
+            player_one.team = team
+            player_two.team = team
             self.teams.append(team)
             self.boards.append(board)
-            self.players[i] = playerOne
-            self.players[i + teams] = playerTwo
+            self.players[i] = player_one
+            self.players[i + teams] = player_two
 
     def reset(self):
         self.discardPile = []
         self.drawPile = []
         self.teams = []
         self.boards = []
-        self.players = [0] * self.playersCount
+        self.players: List[Player] = [None] * self.playersCount
         self.turns = 0
         self.drawn = False
         self.frozen = False
         self.turn = 0
         self.finished = False
         for k in range(self.decks):
-            self.drawPile += generateDeck()
+            self.drawPile += generate_deck()
         random.shuffle(self.drawPile)
         self.discardPile.append(self.draw())
         for i in range(self.teamsCount):
@@ -290,7 +292,7 @@ class Game:
             player_two = Player(player_two_hand, self, board)
             player_one.partner = player_two
             player_two.partner = player_one
-            board.setPlayers(player_one, player_two)
+            board.set_players(player_one, player_two)
             player_one.teamate = player_two
             player_two.teamate = player_one
             player_two.game = self
@@ -306,7 +308,7 @@ class Game:
             self.players[i + self.teamsCount] = player_two
 
     def get_current_player(self):
-        return self.players[self.turn % 6]
+        return self.players[self.turn % self.playersCount]
 
     def __str__(self):
         out = ""
@@ -317,16 +319,16 @@ class Game:
         return out
 
 
-def checkLegal(player: Player, game, move):
+def check_legal(player: Player, game, move):
     while player.hand[15] > 0:
         player.board.redThrees += 1
         player.hand[15] -= 1
         player.hand[game.draw()] += 1
-    handSize = 0
+    hand_size = 0
     for i in range(1, 15):
-        handSize += player.hand[i]
+        hand_size += player.hand[i]
     if move == "goOut":
-        return handSize - player.hand[3] == 1 and (
+        return hand_size - player.hand[3] == 1 and (
             player.hand[3] >= 3 or player.hand[3] == 0
         )
     elif move == "15":
@@ -344,12 +346,12 @@ def checkLegal(player: Player, game, move):
             return False
         for i in player.board.piles:
             if i.cardType == game.discardPile[-1] and (
-                handSize >= 2 or len(player.board.canastas) >= 2
+                hand_size >= 2 or len(player.board.canastas) >= 2
             ):
                 return True
-        if handSize <= 3 and len(game.discardPile) == 1:
+        if hand_size <= 3 and len(game.discardPile) == 1:
             return False
-        if handSize <= 2 and len(game.discardPile) == 2:
+        if hand_size <= 2 and len(game.discardPile) == 2:
             return False
         if game.discardPile[-1] < 4:
             return False
@@ -365,12 +367,12 @@ def checkLegal(player: Player, game, move):
             return False
         for i in player.board.piles:
             if i.cardType == game.discardPile[-1] and (
-                handSize > 1 or len(player.board.canastas) >= 2
+                hand_size > 1 or len(player.board.canastas) >= 2
             ):
                 return True
-        if handSize <= 3 and len(game.discardPile) == 1:
+        if hand_size <= 3 and len(game.discardPile) == 1:
             return False
-        if handSize <= 2 and len(game.discardPile) == 2:
+        if hand_size <= 2 and len(game.discardPile) == 2:
             return False
         if game.discardPile[-1] < 4:
             return False
@@ -380,91 +382,82 @@ def checkLegal(player: Player, game, move):
             player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1
         ) or player.hand[game.discardPile[-1]] >= 2
     elif move[0] == "w" and move[4] == "J":
-        if game.drawn == False:
+        if not game.drawn:
             return False
-        playedCard = int(move[5:])
-        if handSize <= 2 and len(player.board.canastas) < 2:
+        played_card = int(move[5:])
+        if hand_size <= 2 and len(player.board.canastas) < 2:
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
-                    if pile.cardType == playedCard and pile.getTotalCount() == 6:
+                    if pile.cardType == played_card and pile.get_total_count() == 6:
                         return (
-                            handSize == 2
+                            hand_size == 2
                             and player.hand[1] >= 1
                             and pile.twos + pile.jokers + 1 <= pile.count
                         )
             return False
-        if handSize == 1:
+        if hand_size == 1:
             return False
         if player.hand[1] <= 0:
             return False
         for pile in player.board.piles:
-            if pile.cardType == playedCard:
+            if pile.cardType == played_card:
                 return pile.twos + pile.jokers + 1 <= pile.count
         return False
     elif move[0] == "w" and move[4] == "2":
-        if game.drawn == False:
+        if not game.drawn:
             return False
-        playedCard = int(move[5:])
-        if handSize <= 2 and len(player.board.canastas) < 2:
+        played_card = int(move[5:])
+        if hand_size <= 2 and len(player.board.canastas) < 2:
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
-                    if pile.cardType == playedCard and pile.getTotalCount() == 6:
+                    if pile.cardType == played_card and pile.get_total_count() == 6:
                         return (
-                            handSize == 2
+                            hand_size == 2
                             and player.hand[2] >= 1
                             and pile.twos + pile.jokers + 1 <= pile.count
                         )
             return False
-        if handSize == 1:
+        if hand_size == 1:
             return False
         if player.hand[2] <= 0:
             return False
         for pile in player.board.piles:
-            if pile.cardType == playedCard:
+            if pile.cardType == played_card:
                 return pile.twos + pile.jokers + 1 <= pile.count
         return False
     elif move == "pickup":
         return not game.drawn
     elif move[0] == "d":
-        if game.drawn == False:
+        if not game.drawn:
             return False
-        playedCard = int(move[1::])
-        if player.hand[playedCard] <= 0:
+        played_card = int(move[1::])
+        if player.hand[played_card] <= 0:
             return False
-        if len(player.board.canastas) >= 2 or (
-            (len(player.board.canastas) == 1)
-            and (len([p for p in player.board.piles if p.cardType == playedCard]) >= 1)
-            and (
-                [p for p in player.board.piles if p.cardType == playedCard][
-                    0
-                ].getTotalCount()
-                >= 6
-            )
-        ):
-            return True
-        else:
-            return handSize > 1
+        return len(player.board.canastas) >= 2 or hand_size > 1
     else:
         if (
-            game.drawn == False
-            or handSize == 1
-            or (handSize == 2 and len(player.board.canastas) < 2)
+            (not game.drawn)
+            or hand_size == 1
+            or (hand_size == 2 and len(player.board.canastas) < 2)
         ):
             return False
-        playedCard = int(move)
-        if player.hand[playedCard] == 0:
+        played_card = int(move)
+        if player.hand[played_card] == 0:
             return False
         for pile in player.board.piles:
-            if pile.cardType == playedCard:
+            if pile.cardType == played_card:
                 return True
-        if player.hand[playedCard] >= 3 or (
-            player.hand[playedCard] == 2 and player.hand[1] + player.hand[2] >= 1
+        for pile in player.board.canastas:
+            if pile.cardType == played_card:
+                return True
+        if player.hand[played_card] >= 3 or (
+            player.hand[played_card] == 2 and player.hand[1] + player.hand[2] >= 1
         ):
-            return handSize > 4 or (handSize > 3 and len(player.board.canastas) >= 2)
+            return hand_size > 4 or (hand_size > 3 and len(player.board.canastas) >= 2)
         return False
 
 
-def numToMove(num):
+def num_to_move(num):
     if num <= 10:
         return str(num + 4)
     if num <= 24:
@@ -525,9 +518,9 @@ def execute_move(player: Player, game: Game, move):
                 player.hand[1] -= 1
                 knowledge_update[1] -= 1
                 knowledge_update[game.discardPile[-1]] -= 1
-                newStack = BoardStack(game.discardPile[-1], 2)
-                newStack.jokers += 1
-                player.board.piles.append(newStack)
+                new_stack = BoardStack(game.discardPile[-1], 2)
+                new_stack.jokers += 1
+                player.board.piles.append(new_stack)
         for card in game.discardPile:
             player.hand[card] += 1
             knowledge_update[card] += 1
@@ -553,9 +546,9 @@ def execute_move(player: Player, game: Game, move):
                 knowledge_update[game.discardPile[-1]] -= 1
                 player.hand[2] -= 1
                 knowledge_update[2] -= 1
-                newStack = BoardStack(game.discardPile[-1], 2)
-                newStack.twos += 1
-                player.board.piles.append(newStack)
+                new_stack = BoardStack(game.discardPile[-1], 2)
+                new_stack.twos += 1
+                player.board.piles.append(new_stack)
         for card in game.discardPile:
             player.hand[card] += 1
             knowledge_update[card] += 1
@@ -579,11 +572,11 @@ def execute_move(player: Player, game: Game, move):
                 break
     elif move == "pickup":
         game.drawn = True
-        newCard = game.draw()
-        while newCard == 15:
+        new_card = game.draw()
+        while new_card == 15:
             player.board.redThrees += 1
-            newCard = game.draw()
-        player.hand[newCard] += 1
+            new_card = game.draw()
+        player.hand[new_card] += 1
     elif move[0] == "d":
         game.discardPile.append(int(move[1::]))
         player.hand[int(move[1::])] -= 1
@@ -604,6 +597,14 @@ def execute_move(player: Player, game: Game, move):
                 done = True
                 break
         if not done:
+            for pile in player.board.canastas:
+                if pile.cardType == int(move):
+                    pile.count += 1
+                    player.hand[int(move)] -= 1
+                    knowledge_update[int(move)] -= 1
+                    done = True
+                    break
+        if not done:
             if player.hand[int(move)] >= 3:
                 player.hand[int(move)] -= 3
                 knowledge_update[int(move)] -= 3
@@ -614,21 +615,21 @@ def execute_move(player: Player, game: Game, move):
                     player.hand[1] -= 1
                     knowledge_update[int(move)] -= 2
                     knowledge_update[1] -= 1
-                    newPile = BoardStack(int(move), 2)
-                    newPile.jokers += 1
-                    player.board.piles.append(newPile)
+                    new_pile = BoardStack(int(move), 2)
+                    new_pile.jokers += 1
+                    player.board.piles.append(new_pile)
                 else:
                     player.hand[int(move)] -= 2
                     player.hand[2] -= 1
                     knowledge_update[int(move)] -= 2
                     knowledge_update[2] -= 1
-                    newPile = BoardStack(int(move), 2)
-                    newPile.twos += 1
-                    player.board.piles.append(newPile)
+                    new_pile = BoardStack(int(move), 2)
+                    new_pile.twos += 1
+                    player.board.piles.append(new_pile)
     if len(player.board.piles) > 0:
         i = 0
         for j in range(len(player.board.piles)):
-            if player.board.piles[i].getTotalCount() >= 7:
+            if player.board.piles[i].get_total_count() >= 7:
                 player.board.canastas.append(copy.deepcopy(player.board.piles[i]))
                 del player.board.piles[i]
                 i -= 1
@@ -641,17 +642,19 @@ def execute_move(player: Player, game: Game, move):
         if i == player:
             break
         start += 1
-    for i in range(5):
+    for i in range(game.playersCount - 1):
         for j in range(1, 15):
-            game.players[(start + i + 1) % 6].knowledge[4 - i][j] += knowledge_update[j]
-    handSize = 0
+            game.players[(start + i + 1) % game.playersCount].knowledge[2 - i][
+                j
+            ] += knowledge_update[j]
+    hand_size = 0
     for i in range(1, 15):
-        handSize += player.hand[i]
-    if handSize == 0:
+        hand_size += player.hand[i]
+    if hand_size == 0:
         game.finished = True
 
 
-def moveToNum(move):
+def move_to_num(move):
     if move == "goOut":
         return 50
     if move == "pickupPile2":
@@ -669,26 +672,26 @@ def moveToNum(move):
     return int(move) - 4
 
 
-def nodesConversion(hand, board, discardPile, drawn, player):
+def nodes_conversion(hand, board, discard_pile, drawn, player):
     # currently starting only with knowledge of hand and board and discardPile top and what is in it
     nodes = []
     for i in range(14):
         nodes.append(0)
-    for card in discardPile:
+    for card in discard_pile:
         if card == 15:
             continue
         nodes[card - 1] += 1
     curr = len(nodes)
     for i in range(14):
         nodes.append(0)
-    if len(discardPile) > 0 and discardPile[-1] != 15:
-        nodes[discardPile[-1] + curr - 1] = 1
+    if len(discard_pile) > 0 and discard_pile[-1] != 15:
+        nodes[discard_pile[-1] + curr - 1] = 1
     for i in range(1, 15):
         nodes.append(hand[i])
     dirty_count = 0
     clean_count = 0
     for canasta in board.canastas:
-        if canasta.isDirty:
+        if canasta.is_dirty:
             dirty_count += 1
         else:
             clean_count += 1
@@ -698,31 +701,31 @@ def nodesConversion(hand, board, discardPile, drawn, player):
     for i in range(4, 15):
         nodes.append(0)
     for pile in board.piles:
-        nodes[curr + pile.cardType - 4] = pile.getTotalCount()
+        nodes[curr + pile.cardType - 4] = pile.get_total_count()
     curr = len(nodes)
     for i in range(4, 15):
         nodes.append(0)
     for pile in board.piles:
         nodes[curr + pile.cardType - 4] = pile.twos + pile.jokers
     nodes.append(int(drawn))
-    nodes.append(int(checkLegal(player, player.game, "pickupPileJ")))
-    nodes.append(int(checkLegal(player, player.game, "pickupPile2")))
+    nodes.append(int(check_legal(player, player.game, "pickupPileJ")))
+    nodes.append(int(check_legal(player, player.game, "pickupPile2")))
     nodes.append(player.game.turns)
     turn = player.game.turn
-    curr = len(nodes)
-    for i in range(4, 15):
-        nodes.append(0)
-    for pile in player.game.players[(turn + 1) % 6].board.piles:
-        nodes[curr + pile.cardType - 4] = pile.getTotalCount()
-    curr = len(nodes)
-    for i in range(4, 15):
-        nodes.append(0)
-    for pile in player.game.players[(turn + 2) % 6].board.piles:
-        nodes[curr + pile.cardType - 4] = pile.getTotalCount()
-    for i in range(5):
+    for j in range(player.game.teamsCount):
+        curr = len(nodes)
+        for i in range(4, 15):
+            nodes.append(0)
+        for pile in player.game.players[
+            (turn + j) % player.game.playersCount
+        ].board.piles:
+            nodes[curr + pile.cardType - 4] = pile.get_total_count()
+    for i in range(player.game.playersCount - 1):
         for j in range(1, 15):
             nodes.append(player.knowledge[i][j])
-    for i in range(6):
-        nodes.append(player.game.players[(turn + i) % 6].getHandSize())
+    for i in range(player.game.playersCount):
+        nodes.append(
+            player.game.players[(turn + i) % player.game.playersCount].get_hand_size()
+        )
 
     return nodes

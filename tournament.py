@@ -13,7 +13,7 @@ def runGame(predictfunction, plays, models):
     game = envutil.Game(teams, decks, handSize)
     while True:
         chosen = predictfunction(game, models)
-        chosen = envutil.numToMove(chosen)
+        chosen = envutil.num_to_move(chosen)
         envutil.execute_move(game.players[game.turn], game, chosen)
         if game.finished or game.turns >= plays:
             if not game.finished:
@@ -27,14 +27,16 @@ def predict(game, models):
         legal_actions = [
             i
             for i in range(50)
-            if envutil.checkLegal(game.get_current_player(), game, envutil.numToMove(i))
+            if envutil.check_legal(
+                game.get_current_player(), game, envutil.num_to_move(i)
+            )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)
 
     output = {}
     output["obs"] = np.array(
-        envutil.nodesConversion(
+        envutil.nodes_conversion(
             game.get_current_player().hand,
             game.get_current_player().board,
             game.get_current_player().game.discardPile,
@@ -56,9 +58,9 @@ def runTournamnet(models, rounds):
         finalState = runGame(predict, 1000, models)
         for p in range(6):
             avgScores[p] += (
-                finalState.players[p].board.getScore()
-                - finalState.players[p].getHandScore()
-                - finalState.players[(p + 3) % 6].getHandScore()
+                finalState.players[p].board.get_score()
+                - finalState.players[p].get_hand_score()
+                - finalState.players[(p + 3) % 6].get_hand_score()
             )
         avgTurns += finalState.turns
     for i in range(6):

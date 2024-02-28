@@ -35,7 +35,7 @@ def runGame(predictFunction, plays):
     gameStates = [copy.deepcopy(game)]
     while True:
         chosen, _ = predictFunction(game)
-        chosen = envutil.numToMove(chosen)
+        chosen = envutil.num_to_move(chosen)
         envutil.execute_move(game.players[game.turn], game, chosen)
         movesMade.append(chosen)
         gameStates.append(copy.deepcopy(game))
@@ -58,14 +58,16 @@ def predict(game, models=None):
         legal_actions = [
             i
             for i in range(50)
-            if envutil.checkLegal(game.get_current_player(), game, envutil.numToMove(i))
+            if envutil.check_legal(
+                game.get_current_player(), game, envutil.num_to_move(i)
+            )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)
 
     output = {}
     output["obs"] = np.array(
-        envutil.nodesConversion(
+        envutil.nodes_conversion(
             game.get_current_player().hand,
             game.get_current_player().board,
             game.get_current_player().game.discardPile,
@@ -131,17 +133,17 @@ def run_user_game():
         if game.turn % 6 == 0:
             chosen = input("Enter move ")
             while chosen == "" or (
-                not envutil.checkLegal(game.players[0], game, chosen)
+                not envutil.check_legal(game.players[0], game, chosen)
             ):
                 print("Illegal Move")
                 chosen = input("Enter move ")
         else:
             chosen, q_values = predict(game, models=[model1, model2, model3, model4])
             q_values = sorted(
-                [(q_values[i] * 100000, envutil.numToMove(i)) for i in range(len(q_values))],
+                [(q_values[i], envutil.num_to_move(i)) for i in range(len(q_values))],
                 reverse=True,
             )
-            chosen = envutil.numToMove(chosen)
+            chosen = envutil.num_to_move(chosen)
             print("Player " + str(game.turn + 1) + " chose " + chosen)
             text = ""
             for i in range(5):
@@ -158,9 +160,9 @@ def run_user_game():
                     + str(i + 1)
                     + " Score: "
                     + str(
-                        game.players[i].board.getScore()
-                        - game.players[i].getHandScore()
-                        - game.players[i + 3].getHandScore()
+                        game.players[i].board.get_score()
+                        - game.players[i].get_hand_score()
+                        - game.players[i + 3].get_hand_score()
                     )
                 )
             break
@@ -300,16 +302,16 @@ def tournament_game(agent_models):
     while True:
         chosen, q_values = predict(game, models=agent_models)
         history.append((copy.deepcopy(game), chosen, q_values))
-        chosen = envutil.numToMove(chosen)
+        chosen = envutil.num_to_move(chosen)
         envutil.execute_move(game.players[game.turn % 6], game, chosen)
         if game.finished:
             break
     scores = []
     for i in range(3):
         scores.append(
-            game.players[i].board.getScore()
-            - game.players[i].getHandScore()
-            - game.players[i + 3].getHandScore()
+            game.players[i].board.get_score()
+            - game.players[i].get_hand_score()
+            - game.players[i + 3].get_hand_score()
         )
     return scores, history
 
@@ -375,7 +377,7 @@ def game_to_data(game: envutil.Game) -> [int]:
         dirtyCount = 0
         cleanCount = 0
         for canasta in board.canastas:
-            if canasta.isDirty:
+            if canasta.is_dirty:
                 dirtyCount += 1
             else:
                 cleanCount += 1
@@ -417,19 +419,19 @@ def export_to_csv(games, files, filepath):
     df.to_csv(filepath, index=False)
 
 
-#run_user_game()
+run_user_game()
 
-
+"""
 export_to_csv(
     300,
     [
-        "modelgen7/model7.pkl",
-        "modelgen7/model7.pkl",
-        "modelgen7/model7.pkl",
-        "modelgen7/model7.pkl",
-        "modelgen7/model7.pkl",
-        "modelgen7/model7.pkl",
+        "modelgen7/model8.pkl",
+        "modelgen7/model8.pkl",
+        "modelgen7/model8.pkl",
+        "modelgen7/model8.pkl",
+        "modelgen7/model8.pkl",
+        "modelgen7/model8.pkl",
     ],
-    "testoutput21.csv",
+    "testoutput22.csv",
 )
-
+"""

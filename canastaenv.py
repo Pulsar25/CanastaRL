@@ -5,40 +5,46 @@ from rlcard.envs import Env
 
 
 class CanastaEnv(Env):
-    def __init__(self, resetScoreLog=False):
+    def __init__(
+        self,
+        team_count,
+        reset_score_log=False,
+    ):
         self.name = "canasta"
-        self.game = envutil.Game(3, 3, 13)
+        self.game = envutil.Game(team_count, 2, 13)
         super().__init__(config={"allow_step_back": False, "seed": 1023012030123})
-        self.state_shape = [[168] for _ in range(self.game.playersCount)]
+        self.state_shape = [[138] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
         self.num_actions = 51
-        if resetScoreLog:
+        if reset_score_log:
             self.winningScores = []
-            self.playerScoreLog = [0] * 6
+            self.playerScoreLog = [0] * self.game.playersCount
 
     def run(self, is_training=False):
         a, b = super().run(is_training=is_training)
-        return a, b, self.getMaxScore(), self.game.turns
+        return a, b, self.get_max_score(), self.game.turns
 
-    def getMaxScore(self):
-        playerScores = [
+    def get_max_score(self):
+        player_scores = [
             (
-                player.board.getScore()
-                - player.getHandScore()
-                - player.partner.getHandScore()
+                player.board.get_score()
+                - player.get_hand_score()
+                - player.partner.get_hand_score()
             )
             for player in self.game.players
         ]
-        playerScores[self.game.turn - 1] += 100
-        playerScores[(self.game.turn + 2) % 6] += 100
-        return max(playerScores[0], playerScores[1])
+        player_scores[self.game.turn - 1] += 100
+        player_scores[
+            (self.game.turn + (self.game.teamsCount - 1)) % self.game.playersCount
+        ] += 100
+        return max(player_scores)
 
     def _get_legal_actions(self):
         legal_actions = [
             i
-            for i in range(51)
-            if envutil.checkLegal(
-                self.game.get_current_player(), self.game, envutil.numToMove(i)
+            for i in range(self.num_actions)
+            if envutil.check_legal(
+                self.game.get_current_player(), self.game, envutil.num_to_move(i)
             )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
@@ -47,7 +53,7 @@ class CanastaEnv(Env):
     def _extract_state(self, state):  # 200213 don't use state ???
         output = {}
         output["obs"] = np.array(
-            envutil.nodesConversion(
+            envutil.nodes_conversion(
                 self.game.get_current_player().hand,
                 self.game.get_current_player().board,
                 self.game.get_current_player().game.discardPile,
@@ -62,27 +68,34 @@ class CanastaEnv(Env):
 
     def get_payoffs(self):
         if not self.game.finished:
-            return np.zeros((6,))
-        playerScores = [
+            return np.zeros((self.game.playersCount,))
+        player_scores = [
             (
-                player.board.getScore()
-                - player.getHandScore()
-                - player.partner.getHandScore()
+                player.board.get_score()
+                - player.get_hand_score()
+                - player.partner.get_hand_score()
             )
             for player in self.game.players
         ]
-        playerScores[self.game.turn - 1] += 100
-        playerScores[(self.game.turn + 2) % 6] += 100
-        playerPayoffs = [
-            (playerScores[i] * 3)
-            - playerScores[(i + 1) % 6]
-            - playerScores[(i + 2) % 6]
-            for i in range(6)
+        player_scores[self.game.turn - 1] += 100
+        player_scores[
+            (self.game.turn + (self.game.teamsCount - 1)) % self.game.playersCount
+        ] += 100
+        # subtract other players scores for payoffs
+        player_payoffs = [
+            player_scores[i]
+            - sum(
+                [
+                    player_scores[(i + j) % self.game.playersCount]
+                    for j in range(1, self.game.teamsCount)
+                ]
+            )
+            for i in range(self.game.playersCount)
         ]
-        for i in range(6):
-            self.playerScoreLog[i] += playerPayoffs[i]
-        self.winningScores.append(max(playerScores[0], playerScores[1]))
-        return np.array(playerPayoffs)
+        for i in range(self.game.playersCount):
+            self.playerScoreLog[i] += player_payoffs[i]
+        self.winningScores.append(max(player_scores))
+        return np.array(player_payoffs)
 
     def _decode_action(self, action_id):
-        return envutil.numToMove(action_id)
+        return envutil.num_to_move(action_id)
