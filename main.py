@@ -10,18 +10,18 @@ from copy import deepcopy
 
 def make_agents(n):
     out = []
-    env = canastaenv.CanastaEnv(team_count=2,reset_score_log=True)
+    env = canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
     for i in range(n):
         agent = DQNAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
             mlp_layers=[512, 512, 256, 256, 128, 128],
-            epsilon_decay_steps=10000,
+            epsilon_decay_steps=100000,
             learning_rate=0.01,
-            update_target_estimator_every=150,
-            train_every=150,
+            update_target_estimator_every=1000,
+            train_every=1000,
         )
-        out.append((agent, (i + 1), AgentInfo()))
+        out.append((agent, (i + 1), AgentInfo(100)))
     return out
 
 
@@ -47,17 +47,19 @@ def agent_sort_key(agent):
     return agent[2].get_avg_recent_score()
 
 
-def kill_bad_agents(agents):
+def kill_bad_agents(agents, num_kill):
     new_agents = deepcopy(agents)
     new_agents = sorted(new_agents, key=agent_sort_key, reverse=True)
-    replaced_nums = [a[1] for a in new_agents[len(new_agents) - 4: len(new_agents)]]
-    replaced_history = [
-        deepcopy(a[2]) for a in new_agents[len(new_agents) - 4: len(new_agents)]
+    replaced_nums = [
+        a[1] for a in new_agents[len(new_agents) - num_kill : len(new_agents)]
     ]
-    new_agents = new_agents[0: len(new_agents) - 4]
-    for i in range(4):
+    replaced_history = [
+        deepcopy(a[2]) for a in new_agents[len(new_agents) - num_kill : len(new_agents)]
+    ]
+    new_agents = new_agents[0 : len(new_agents) - num_kill]
+    for i in range(num_kill):
         new_agents.append(
-            (deepcopy(new_agents[i][0]), replaced_nums[i], replaced_history[i])
+            (deepcopy(agents[i][0]), replaced_nums[i], replaced_history[i])
         )
     return new_agents
 
@@ -66,13 +68,14 @@ def multi_agent_train(
     training_cycles, num_enviornments, graph_all=False, print_each_game=False
 ):
     envs = [
-        canastaenv.CanastaEnv(team_count=2, reset_score_log=True) for _ in range(num_enviornments)
+        canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+        for _ in range(num_enviornments)
     ]
     agents = make_agents(num_enviornments * 4)
     for cycle in range(1, training_cycles + 1):
         random.shuffle(agents)
         for i in range(num_enviornments):
-            envs[i].set_agents([a[0] for a in agents[(i * 4): (4 + (i * 4))]])
+            envs[i].set_agents([a[0] for a in agents[(i * 4) : (4 + (i * 4))]])
         output = [run_with_trajectories(env) for env in envs]
         for i in range(num_enviornments):
             payoffs, _ = output[i]
@@ -84,8 +87,7 @@ def multi_agent_train(
                 print(str(out[0]) + ": " + str(int(out[1])))
         if cycle % 100 == 0:
             print(cycle)
-            print("Killing Bad Agents")
-            agents = kill_bad_agents(agents)
+            agents = kill_bad_agents(agents, 2)
         if (graph_all and cycle % 20 == 0) or cycle == training_cycles:
             graphing.update_scores_plot(
                 [
@@ -109,4 +111,4 @@ def multi_agent_train(
 
 
 if __name__ == "__main__":
-    multi_agent_train(5000, 3, graph_all=True)
+    multi_agent_train(5000, 2, graph_all=True)

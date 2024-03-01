@@ -1,6 +1,5 @@
 import envutil
 import copy
-import pygame
 import numpy as np
 import pickle
 from collections import OrderedDict
@@ -9,55 +8,54 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("modelgen7/model10.pkl", "rb")
+file = open("modelgen8/model3.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("modelgen7/model10.pkl", "rb")
+file = open("modelgen8/model3.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("modelgen7/model10.pkl", "rb")
+file = open("modelgen8/model3.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("modelgen7/model10.pkl", "rb")
+file = open("modelgen8/model3.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
-
 
 computer_models = [model1, model1, model1, model1, model1, model1]
 
 
-def runGame(predictFunction, plays):
-    teams = 3
-    decks = 3
-    handSize = 13
-    movesMade = []
-    game = envutil.Game(teams, decks, handSize)
-    gameStates = [copy.deepcopy(game)]
+def run_game(predict_function, plays):
+    teams = 2
+    decks = 2
+    hand_size = 13
+    moves_made = []
+    game = envutil.Game(teams, decks, hand_size)
+    game_states = [copy.deepcopy(game)]
     while True:
-        chosen, _ = predictFunction(game)
+        chosen, _ = predict_function(game)
         chosen = envutil.num_to_move(chosen)
         envutil.execute_move(game.players[game.turn], game, chosen)
-        movesMade.append(chosen)
-        gameStates.append(copy.deepcopy(game))
+        moves_made.append(chosen)
+        game_states.append(copy.deepcopy(game))
         if game.finished or game.turns >= plays:
             if game.finished:
                 print("Finished Game")
             else:
                 print("Broke Game")
             break
-    return gameStates, movesMade
+    return game_states, moves_made
 
 
 def predict(game, models=None):
     global computer_models
 
-    if models == None:
+    if models is None:
         models = computer_models
 
-    def _get_legal_actions():
+    def get_legal_actions():
         legal_actions = [
             i
-            for i in range(50)
+            for i in range(51)
             if envutil.check_legal(
                 game.get_current_player(), game, envutil.num_to_move(i)
             )
@@ -65,17 +63,18 @@ def predict(game, models=None):
         legal_actions_ids = {action_event: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)
 
-    output = {}
-    output["obs"] = np.array(
-        envutil.nodes_conversion(
-            game.get_current_player().hand,
-            game.get_current_player().board,
-            game.get_current_player().game.discardPile,
-            game.get_current_player().game.drawn,
-            game.get_current_player(),
-        )
-    )
-    output["legal_actions"] = _get_legal_actions()
+    output = {
+        "obs": np.array(
+            envutil.nodes_conversion(
+                game.get_current_player().hand,
+                game.get_current_player().board,
+                game.get_current_player().game.discardPile,
+                game.get_current_player().game.drawn,
+                game.get_current_player(),
+            )
+        ),
+        "legal_actions": get_legal_actions(),
+    }
     output["raw_obs"] = output["obs"]
     output["raw_legal_actions"] = list(output["legal_actions"].keys())
     prediction, q_values = models[game.turn % len(models)].eval_step(output)
@@ -85,28 +84,28 @@ def predict(game, models=None):
 def run_user_game():
     print()
     print("Human player will play player 1")
-    teams = 3
-    decks = 3
-    handSize = 13
-    game = envutil.Game(teams, decks, handSize)
+    teams = 2
+    decks = 2
+    hand_size = 13
+    game = envutil.Game(teams, decks, hand_size)
     while True:
         print("Player " + str(game.turn + 1) + " playing")
         text = ""
         text += "P" + str(1) + " Hand: "
         hand = ""
         for i in range(15):
-            hand += (numToCard(i) + " ") * game.players[0].hand[i]
+            hand += (num_to_card(i) + " ") * game.players[0].hand[i]
         text += hand
         print(text)
-        for player in range(3):
+        for player in range(game.teamsCount):
             text = ""
-            if player == game.turn % 3:
+            if player == game.turn % game.teamsCount:
                 text = "> "
             text += "P" + str(player + 1) + " Board: "
             for pile in game.players[player].board.canastas:
                 text += (
                     "*("
-                    + numToCard(pile.cardType)
+                    + num_to_card(pile.cardType)
                     + ", "
                     + str(pile.count)
                     + ", "
@@ -118,7 +117,7 @@ def run_user_game():
             for pile in game.players[player].board.piles:
                 text += (
                     "("
-                    + numToCard(pile.cardType)
+                    + num_to_card(pile.cardType)
                     + ", "
                     + str(pile.count)
                     + ", "
@@ -129,8 +128,8 @@ def run_user_game():
                 )
             print(text)
         if len(game.discardPile) > 0:
-            print(numToCard(game.discardPile[-1]))
-        if game.turn % 6 == 0:
+            print(num_to_card(game.discardPile[-1]))
+        if game.turn % game.playersCount == 0:
             chosen = input("Enter move ")
             while chosen == "" or (
                 not envutil.check_legal(game.players[0], game, chosen)
@@ -154,7 +153,7 @@ def run_user_game():
         print()
         if game.finished:
             print("Finished Game")
-            for i in range(3):
+            for i in range(game.teamsCount):
                 print(
                     "Player "
                     + str(i + 1)
@@ -162,13 +161,13 @@ def run_user_game():
                     + str(
                         game.players[i].board.get_score()
                         - game.players[i].get_hand_score()
-                        - game.players[i + 3].get_hand_score()
+                        - game.players[(i + 2) % game.playersCount].get_hand_score()
                     )
                 )
             break
 
 
-def numToCard(n):
+def num_to_card(n):
     if n == 1:
         return "W"
     if n == 11:
@@ -183,8 +182,10 @@ def numToCard(n):
 
 
 def run_model_game():
+    import pygame
+
     print("Started Game")
-    states, moves = runGame(predict, 1000)
+    states, moves = run_game(predict, 1000)
     pygame.init()
     screen = pygame.display.set_mode((1280, 720))
     clock = pygame.time.Clock()
@@ -192,7 +193,7 @@ def run_model_game():
 
     state = 0
     last = None
-    timeDown = 0.0
+    time_down = 0.0
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -201,11 +202,11 @@ def run_model_game():
         screen.fill("black")
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RIGHTBRACKET] and (
-            last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1
+            last != keys[pygame.K_RIGHTBRACKET] or time_down > 1
         ):
             state += 1
         if keys[pygame.K_LEFTBRACKET] and (
-            last != keys[pygame.K_RIGHTBRACKET] or timeDown > 1
+            last != keys[pygame.K_RIGHTBRACKET] or time_down > 1
         ):
             state -= 1
         last = keys[pygame.K_RIGHTBRACKET] or keys[pygame.K_LEFTBRACKET]
@@ -225,7 +226,7 @@ def run_model_game():
             text += "P" + str(player + 1) + " Hand: "
             hand = ""
             for i in range(15):
-                hand += (numToCard(i) + " ") * states[state].players[player].hand[i]
+                hand += (num_to_card(i) + " ") * states[state].players[player].hand[i]
             text += hand
             font1 = pygame.font.SysFont(text, 36)
             img1 = font1.render(text, True, "white")
@@ -236,11 +237,10 @@ def run_model_game():
             if player == states[state].turn % 3:
                 text = "> "
             text += "P" + str(player + 1) + " Board: "
-            board = ""
             for pile in states[state].players[player].board.canastas:
                 text += (
                     "*("
-                    + numToCard(pile.cardType)
+                    + num_to_card(pile.cardType)
                     + ", "
                     + str(pile.count)
                     + ", "
@@ -252,7 +252,7 @@ def run_model_game():
             for pile in states[state].players[player].board.piles:
                 text += (
                     "("
-                    + numToCard(pile.cardType)
+                    + num_to_card(pile.cardType)
                     + ", "
                     + str(pile.count)
                     + ", "
@@ -270,13 +270,17 @@ def run_model_game():
             img1 = font1.render((moves[state]), True, "white")
             screen.blit(img1, (20, 200))
         if len(states[state].discardPile) > 0:
-            font1 = pygame.font.SysFont(numToCard(states[state].discardPile[-1]), 36)
-            img1 = font1.render(numToCard(states[state].discardPile[-1]), True, "white")
+            font1 = pygame.font.SysFont(num_to_card(states[state].discardPile[-1]), 36)
+            img1 = font1.render(
+                num_to_card(states[state].discardPile[-1]), True, "white"
+            )
             screen.blit(img1, (20, 400))
 
-            font1 = pygame.font.SysFont(numToCard(states[state].discardPile[0:-1]), 36)
+            font1 = pygame.font.SysFont(
+                num_to_card(states[state].discardPile[0:-1]), 36
+            )
             img1 = font1.render(
-                numToCard(states[state].discardPile[0:-1]), True, "white"
+                num_to_card(states[state].discardPile[0:-1]), True, "white"
             )
             screen.blit(img1, (20, 425))
 
@@ -286,18 +290,18 @@ def run_model_game():
 
         pygame.display.flip()
         dt = clock.tick(60) / 1000
-        timeDown += dt
+        time_down += dt
         if not keys[pygame.K_LEFTBRACKET] and not keys[pygame.K_RIGHTBRACKET]:
-            timeDown = 0
+            time_down = 0
 
     pygame.quit()
 
 
 def tournament_game(agent_models):
-    teams = 3
-    decks = 3
-    handSize = 13
-    game = envutil.Game(teams, decks, handSize)
+    teams = 2
+    decks = 2
+    hand_size = 13
+    game = envutil.Game(teams, decks, hand_size)
     history = []
     while True:
         chosen, q_values = predict(game, models=agent_models)
@@ -311,24 +315,24 @@ def tournament_game(agent_models):
         scores.append(
             game.players[i].board.get_score()
             - game.players[i].get_hand_score()
-            - game.players[i + 3].get_hand_score()
+            - game.players[(i + 2) % 4].get_hand_score()
         )
     return scores, history
 
 
 def tournament(games, files):
     agent_models = []
-    for file in files:
-        file = open(file, "rb")
-        loaded_model = pickle.load(file)
-        file.close()
+    for model_file in files:
+        model_file = open(model_file, "rb")
+        loaded_model = pickle.load(model_file)
+        model_file.close()
         agent_models.append(loaded_model)
-    total_scores = [0] * 3
+    total_scores = [0] * 2
     for i in range(games):
         results, _ = tournament_game(agent_models)
-        for j in range(3):
+        for j in range(2):
             total_scores[j] += results[j]
-    for j in range(3):
+    for j in range(2):
         total_scores[j] /= games
     print("Final Avg Scores: " + str(total_scores))
 
@@ -338,53 +342,57 @@ def tournament(games, files):
 # 98-103 board (dirty,clean)
 # 104-202 boards 3 boards, 11 cards, card count, two count j count
 # 203 turn
+def get_output_lables():
+    out = []
+    for i in range(1, 15):
+        out.append("discardPile" + str(i))
+    for i in range(1, 5):
+        for j in range(1, 15):
+            out.append("player" + str(i) + "cardNum" + str(j))
+    for i in range(1, 3):
+        out.append("board" + str(i) + "dirties")
+        out.append("board" + str(i) + "cleans")
+    for i in range(1, 3):
+        for j in range(4, 15):
+            out.append("board" + str(i) + "pile" + str(j) + "cardcount")
+            out.append("board" + str(i) + "pile" + str(j) + "twos")
+            out.append("board" + str(i) + "pile" + str(j) + "jokers")
+    out.append("turn")
+    out.append("total_turns")
+    out.append("move")
+    out.append("finalscores1")
+    out.append("finalscores2")
+    out.append("finalscores3")
+    for i in range(1, 52):
+        out.append("q_value" + str(i))
+    return out
 
-output_labels = []
-for i in range(1, 15):
-    output_labels.append("discardPile" + str(i))
-for i in range(1, 7):
-    for j in range(1, 15):
-        output_labels.append("player" + str(i) + "cardNum" + str(j))
-for i in range(1, 4):
-    output_labels.append("board" + str(i) + "dirties")
-    output_labels.append("board" + str(i) + "cleans")
-for i in range(1, 4):
-    for j in range(4, 15):
-        output_labels.append("board" + str(i) + "pile" + str(j) + "cardcount")
-        output_labels.append("board" + str(i) + "pile" + str(j) + "twos")
-        output_labels.append("board" + str(i) + "pile" + str(j) + "jokers")
-output_labels.append("turn")
-output_labels.append("total_turns")
-output_labels.append("move")
-output_labels.append("finalscores1")
-output_labels.append("finalscores2")
-output_labels.append("finalscores3")
-for i in range(1, 52):
-    output_labels.append("q_value" + str(i))
+
+output_labels = get_output_lables()
 
 
 def game_to_data(game: envutil.Game) -> [int]:
     output = []
-    discardPile = game.discardPile
+    discard_pile = game.discardPile
     for i in range(14):
         output.append(0)
-    for card in discardPile:
+    for card in discard_pile:
         output[card - 2] += 1
     for player in game.players:
         for i in range(1, 15):
             output.append(player.hand[i])
     for board in game.boards:
-        dirtyCount = 0
-        cleanCount = 0
+        dirty_count = 0
+        clean_count = 0
         for canasta in board.canastas:
             if canasta.is_dirty:
-                dirtyCount += 1
+                dirty_count += 1
             else:
-                cleanCount += 1
-        output.append(dirtyCount)
-        output.append(cleanCount)
+                clean_count += 1
+        output.append(dirty_count)
+        output.append(clean_count)
     curr = len(output)
-    for i in range(99):
+    for i in range(66):
         output.append(0)
     for board_i in range(len(game.boards)):
         for pile in game.boards[board_i].canastas + game.boards[board_i].piles:
@@ -398,10 +406,10 @@ def game_to_data(game: envutil.Game) -> [int]:
 
 def get_data(games, files):
     agent_models = []
-    for file in files:
-        file = open(file, "rb")
-        loaded_model = pickle.load(file)
-        file.close()
+    for model_file in files:
+        model_file = open(model_file, "rb")
+        loaded_model = pickle.load(model_file)
+        model_file.close()
         agent_models.append(loaded_model)
     data = []
     output = [tournament_game(agent_models=agent_models) for _ in range(games)]
@@ -421,17 +429,29 @@ def export_to_csv(games, files, filepath):
 
 run_user_game()
 
-"""
+
 export_to_csv(
     300,
     [
-        "modelgen7/model8.pkl",
-        "modelgen7/model8.pkl",
-        "modelgen7/model8.pkl",
-        "modelgen7/model8.pkl",
-        "modelgen7/model8.pkl",
-        "modelgen7/model8.pkl",
+        "modelgen8/model2.pkl",
+        "modelgen8/model2.pkl",
+        "modelgen8/model2.pkl",
+        "modelgen8/model2.pkl",
+        "modelgen8/model2.pkl",
+        "modelgen8/model2.pkl",
     ],
-    "testoutput22.csv",
+    "testoutput24.csv",
 )
-"""
+
+export_to_csv(
+    300,
+    [
+        "modelgen8/model3.pkl",
+        "modelgen8/model3.pkl",
+        "modelgen8/model3.pkl",
+        "modelgen8/model3.pkl",
+        "modelgen8/model3.pkl",
+        "modelgen8/model3.pkl",
+    ],
+    "testoutput25.csv",
+)

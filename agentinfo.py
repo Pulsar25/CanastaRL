@@ -1,5 +1,5 @@
 class AgentInfo:
-    def __init__(self):
+    def __init__(self, recent):
         self.scores = []
         self.total_score = 0
         self.total_last_score = 0
@@ -8,7 +8,7 @@ class AgentInfo:
         self.total_length = 0
         self.total_last_length = 0
         self.last_lengths = []
-        self.recent = 150
+        self.recent = recent
 
     def add_score(self, score):
         self.scores.append(score)

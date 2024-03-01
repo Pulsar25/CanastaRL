@@ -171,7 +171,7 @@ class Game:
         return self.playersCount
 
     def get_num_actions(self):
-        return 50
+        return 51
 
     def init_game(self):
         self.reset()
@@ -328,8 +328,11 @@ def check_legal(player: Player, game, move):
     for i in range(1, 15):
         hand_size += player.hand[i]
     if move == "goOut":
-        return hand_size - player.hand[3] == 1 and (
-            player.hand[3] >= 3 or player.hand[3] == 0
+        return (
+            game.drawn
+            and len(player.board.canastas) >= 2
+            and hand_size - player.hand[3] == 1
+            and (player.hand[3] >= 3 or player.hand[3] == 0)
         )
     elif move == "15":
         return False
@@ -345,8 +348,10 @@ def check_legal(player: Player, game, move):
         if len(game.discardPile) == 0:
             return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1] and (
-                hand_size >= 2 or len(player.board.canastas) >= 2
+            if (
+                i.cardType == game.discardPile[-1]
+                and hand_size >= 2
+                and (not game.frozen)
             ):
                 return True
         if hand_size <= 3 and len(game.discardPile) == 1:
@@ -358,16 +363,20 @@ def check_legal(player: Player, game, move):
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
         return (
-            player.hand[1] >= 1 and player.hand[game.discardPile[-1]]
-        ) >= 1 or player.hand[game.discardPile[-1]] >= 2
+            (not game.frozen)
+            and player.hand[1] >= 1
+            and player.hand[game.discardPile[-1]] >= 1
+        ) or player.hand[game.discardPile[-1]] >= 2
     elif move == "pickupPile2":
         if game.drawn:
             return False
         if len(game.discardPile) == 0:
             return False
         for i in player.board.piles:
-            if i.cardType == game.discardPile[-1] and (
-                hand_size > 1 or len(player.board.canastas) >= 2
+            if (
+                i.cardType == game.discardPile[-1]
+                and hand_size >= 2
+                and (not game.frozen)
             ):
                 return True
         if hand_size <= 3 and len(game.discardPile) == 1:
@@ -379,7 +388,9 @@ def check_legal(player: Player, game, move):
         if game.frozen or len(player.board.piles) + len(player.board.canastas) == 0:
             return player.hand[game.discardPile[-1]] >= 2
         return (
-            player.hand[2] >= 1 and player.hand[game.discardPile[-1]] >= 1
+            (not game.frozen)
+            and player.hand[2] >= 1
+            and player.hand[game.discardPile[-1]] >= 1
         ) or player.hand[game.discardPile[-1]] >= 2
     elif move[0] == "w" and move[4] == "J":
         if not game.drawn:
@@ -435,13 +446,27 @@ def check_legal(player: Player, game, move):
             return False
         return len(player.board.canastas) >= 2 or hand_size > 1
     else:
+        played_card = int(move)
         if (
             (not game.drawn)
             or hand_size == 1
-            or (hand_size == 2 and len(player.board.canastas) < 2)
+            or (
+                hand_size == 2
+                and len(player.board.canastas) < 2
+                and not (
+                    len(player.board.canastas) == 1
+                    and len(
+                        [p for p in player.board.piles if p.cardType == played_card]
+                    )
+                    > 0
+                    and [p for p in player.board.piles if p.cardType == played_card][
+                        0
+                    ].get_total_count()
+                    == 6
+                )
+            )
         ):
             return False
-        played_card = int(move)
         if player.hand[played_card] == 0:
             return False
         for pile in player.board.piles:
