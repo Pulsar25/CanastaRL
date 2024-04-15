@@ -8,16 +8,16 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("modelgen8/model3.pkl", "rb")
+file = open("modelgen10/agent7.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("modelgen8/model3.pkl", "rb")
+file = open("modelgen10/agent7.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("modelgen8/model3.pkl", "rb")
+file = open("modelgen10/agent7.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("modelgen8/model3.pkl", "rb")
+file = open("modelgen10/agent7.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -90,13 +90,16 @@ def run_user_game():
     game = envutil.Game(teams, decks, hand_size)
     while True:
         print("Player " + str(game.turn + 1) + " playing")
-        text = ""
-        text += "P" + str(1) + " Hand: "
-        hand = ""
-        for i in range(15):
-            hand += (num_to_card(i) + " ") * game.players[0].hand[i]
-        text += hand
-        print(text)
+        for p in range(4):
+            text = ""
+            if game.turn == p:
+                text += "> "
+            text += "P" + str(p+1) + " Hand: "
+            hand = ""
+            for i in range(15):
+                hand += (num_to_card(i) + " ") * game.players[p].hand[i]
+            text += hand
+            print(text)
         for player in range(game.teamsCount):
             text = ""
             if player == game.turn % game.teamsCount:
@@ -429,29 +432,15 @@ def export_to_csv(games, files, filepath):
 
 run_user_game()
 
-
+"""
 export_to_csv(
     300,
     [
-        "modelgen8/model2.pkl",
-        "modelgen8/model2.pkl",
-        "modelgen8/model2.pkl",
-        "modelgen8/model2.pkl",
-        "modelgen8/model2.pkl",
-        "modelgen8/model2.pkl",
+        "modelgen10/agent7.pkl",
+        "modelgen10/agent8.pkl",
+        "modelgen10/agent7.pkl",
+        "modelgen10/agent8.pkl",
     ],
-    "testoutput24.csv",
+    "testoutput27.csv",
 )
-
-export_to_csv(
-    300,
-    [
-        "modelgen8/model3.pkl",
-        "modelgen8/model3.pkl",
-        "modelgen8/model3.pkl",
-        "modelgen8/model3.pkl",
-        "modelgen8/model3.pkl",
-        "modelgen8/model3.pkl",
-    ],
-    "testoutput25.csv",
-)
+"""

@@ -13,7 +13,7 @@ class CanastaEnv(Env):
         self.name = "canasta"
         self.game = envutil.Game(team_count, 2, 13)
         super().__init__(config={"allow_step_back": False, "seed": 1023012030123})
-        self.state_shape = [[138] for _ in range(self.game.playersCount)]
+        self.state_shape = [[857] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
         self.num_actions = 51
         if reset_score_log:
@@ -21,8 +21,54 @@ class CanastaEnv(Env):
             self.playerScoreLog = [0] * self.game.playersCount
 
     def run(self, is_training=False):
-        a, b = super().run(is_training=is_training)
-        return a, b, self.get_max_score(), self.game.turns
+        '''
+        Run a complete game, either for evaluation or training RL agent.
+
+        Args:
+            is_training (boolean): True if for training purpose.
+
+        Returns:
+            (tuple) Tuple containing:
+
+                (list): A list of trajectories generated from the environment.
+                (list): A list payoffs. Each entry corresponds to one player.
+
+        Note: The trajectories are 3-dimension list. The first dimension is for different players.
+              The second dimension is for different transitions. The third dimension is for the contents of each transiton
+        '''
+        trajectories = [[] for _ in range(self.num_players)]
+        state, player_id = self.reset()
+
+        # Loop to play the game
+        while not self.is_over():
+            trajectories[player_id].append(state)
+            # Agent plays
+            if not is_training:
+                action, _ = self.agents[player_id].eval_step(state)
+            else:
+                action = self.agents[player_id].step(state)
+
+            # Environment steps
+            next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
+            # Save action
+            trajectories[player_id].append(action)
+
+            # Set the state and player
+            state = next_state
+            player_id = next_player_id
+
+            # Save state.
+
+        # Add a final state to all the players
+        for player_id in range(self.num_players):
+            state = self.get_state(player_id)
+            trajectories[player_id].append(state)
+
+        # Payoffs
+        payoffs = self.get_payoffs()
+
+        return trajectories, payoffs, self.get_max_score(), self.game.turns
+
 
     def get_max_score(self):
         player_scores = [

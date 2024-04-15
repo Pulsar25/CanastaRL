@@ -20,6 +20,25 @@ def make_agents(n):
             learning_rate=0.01,
             update_target_estimator_every=1000,
             train_every=1000,
+            discount_factor=1.0,
+        )
+        out.append((agent, (i + 1), AgentInfo(100)))
+    return out
+
+
+def make_agents_linear(n):
+    out = []
+    env = canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+    for i in range(n):
+        agent = DQNAgent(
+            num_actions=env.num_actions,
+            state_shape=env.state_shape[0],
+            mlp_layers=[],
+            epsilon_decay_steps=100000,
+            learning_rate=0.01,
+            update_target_estimator_every=1000,
+            train_every=1000,
+            discount_factor=1.0,
         )
         out.append((agent, (i + 1), AgentInfo(100)))
     return out
@@ -71,7 +90,7 @@ def multi_agent_train(
         canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
         for _ in range(num_enviornments)
     ]
-    agents = make_agents(num_enviornments * 4)
+    agents = make_agents_linear(num_enviornments * 4)
     for cycle in range(1, training_cycles + 1):
         random.shuffle(agents)
         for i in range(num_enviornments):
@@ -111,4 +130,4 @@ def multi_agent_train(
 
 
 if __name__ == "__main__":
-    multi_agent_train(5000, 2, graph_all=True)
+    multi_agent_train(1000, 2, graph_all=True)

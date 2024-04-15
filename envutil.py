@@ -698,6 +698,10 @@ def move_to_num(move):
 
 
 def nodes_conversion(hand, board, discard_pile, drawn, player):
+    return nodes_conversion_linear(hand, board, discard_pile, drawn, player)
+
+
+def nodes_conversion_non_linear(hand, board, discard_pile, drawn, player):
     # currently starting only with knowledge of hand and board and discardPile top and what is in it
     nodes = []
     for i in range(14):
@@ -752,5 +756,50 @@ def nodes_conversion(hand, board, discard_pile, drawn, player):
         nodes.append(
             player.game.players[(turn + i) % player.game.playersCount].get_hand_size()
         )
+    curr = len(nodes)
+    for i in range(14):
+        nodes.append(0)
+    if len(discard_pile) > 0 and discard_pile[-1] != 15:
+        nodes[discard_pile[-1] + curr - 1] = 1
+    return nodes
 
+
+def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
+    # player cards 14 * 8 * 6
+    # player boards count 11 * 5 (3-7) * 3
+    # player canasta count (number) * 3
+    # discard pile top * 14
+    # discard pile size (number)
+    # drawn
+    # frozen
+    turn = player.game.turn
+    nodes = []
+    for i in range(6):
+        for j in range(1,15):
+            for k in range(1,9):
+                if player.game.players[(turn + i) % player.game.playersCount].hand[j] >= k:
+                    nodes.append(1)
+                else:
+                    nodes.append(0)
+    for i in range(3):
+        curr = len(nodes)
+        nodes += [0] * (11 * 5)
+        for canasta in player.game.players[(turn + i) % player.game.playersCount].board.canastas:
+            for j in range(5):
+                if canasta.get_total_count() - 3 >= j:
+                    nodes[curr + (canasta.cardType - 4) * 5 + j] = 1
+        for pile in player.game.players[(turn + i) % player.game.playersCount].board.piles:
+            for j in range(5):
+                if pile.get_total_count() - 3 >= j:
+                    nodes[curr + (pile.cardType - 4) * 5 + j] = 1
+    for i in range(3):
+        nodes.append(len(player.game.players[(turn + i) % player.game.playersCount].board.canastas))
+    curr = len(nodes)
+    for i in range(14):
+        nodes.append(0)
+    if len(discard_pile) > 0 and discard_pile[-1] != 15:
+        nodes[discard_pile[-1] + curr - 1] = 1
+    nodes.append(len(discard_pile))
+    nodes.append(int(player.game.drawn))
+    nodes.append(int(player.game.frozen))
     return nodes
