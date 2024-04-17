@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 current_plot = None
 legend_labels = None
-plot_title = "Agent Scores Over Different Games"
+plot_title = "Agent Scores VS Random Agent"
 
 custom_colors = [
     "#1f77b4",

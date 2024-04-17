@@ -310,15 +310,15 @@ def tournament_game(agent_models):
         chosen, q_values = predict(game, models=agent_models)
         history.append((copy.deepcopy(game), chosen, q_values))
         chosen = envutil.num_to_move(chosen)
-        envutil.execute_move(game.players[game.turn % 6], game, chosen)
+        envutil.execute_move(game.players[game.turn % (teams * 2)], game, chosen)
         if game.finished:
             break
     scores = []
-    for i in range(3):
+    for i in range(teams):
         scores.append(
             game.players[i].board.get_score()
             - game.players[i].get_hand_score()
-            - game.players[(i + 2) % 4].get_hand_score()
+            - game.players[(i + teams) % (teams * 2)].get_hand_score()
         )
     return scores, history
 
@@ -430,17 +430,18 @@ def export_to_csv(games, files, filepath):
     df.to_csv(filepath, index=False)
 
 
-run_user_game()
+if __name__ == "__main__":
+    run_user_game()
 
-"""
-export_to_csv(
-    300,
-    [
-        "modelgen10/agent7.pkl",
-        "modelgen10/agent8.pkl",
-        "modelgen10/agent7.pkl",
-        "modelgen10/agent8.pkl",
-    ],
-    "testoutput27.csv",
-)
-"""
+    """
+    export_to_csv(
+        300,
+        [
+            "modelgen10/agent7.pkl",
+            "modelgen10/agent8.pkl",
+            "modelgen10/agent7.pkl",
+            "modelgen10/agent8.pkl",
+        ],
+        "testoutput27.csv",
+    )
+    """

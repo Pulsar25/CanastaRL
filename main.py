@@ -1,11 +1,27 @@
 import random
 from rlcard.agents import DQNAgent
+from rlcard.agents import RandomAgent
 import canastaenv
 import pickle
 from rlcard.utils import reorganize
 from agentinfo import AgentInfo
 import graphing
 from copy import deepcopy
+from testing import tournament_game
+import multiprocessing as mp
+import time
+
+
+
+
+def test_against_random(agent, games = 5):
+    env = canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+    random_agent = RandomAgent(num_actions=env.num_actions)
+    total_diff = 0
+    for i in range(games):
+        scores, _ = tournament_game([agent, random_agent, agent, random_agent])
+        total_diff += scores[0] - scores[1]
+    return int(total_diff / games)
 
 
 def make_agents(n):
@@ -22,7 +38,7 @@ def make_agents(n):
             train_every=1000,
             discount_factor=1.0,
         )
-        out.append((agent, (i + 1), AgentInfo(100)))
+        out.append((agent, (i + 1), AgentInfo(1)))
     return out
 
 
@@ -107,12 +123,18 @@ def multi_agent_train(
         if cycle % 100 == 0:
             print(cycle)
             agents = kill_bad_agents(agents, 2)
-        if (graph_all and cycle % 20 == 0) or cycle == training_cycles:
+        if (graph_all and cycle % 50 == 0) or cycle == training_cycles:
+            start_eval_time = time.time()
+            with mp.Pool(num_enviornments * 4) as pool:
+                perf_evals = pool.map(test_against_random, [agent[0] for agent in agents])
+            print(time.time() - start_eval_time)
+            for i in range(len(agents)):
+                agents[i][2].add_perf_eval(perf_evals[i])
             graphing.update_scores_plot(
                 [
                     a[1]
                     for a in sorted(
-                        [(agent[1], agent[2].get_last_scores(300)) for agent in agents]
+                        [(agent[1], agent[2].get_perf_evals(100)) for agent in agents]
                     )
                 ],
                 cycle == training_cycles,
@@ -130,4 +152,4 @@ def multi_agent_train(
 
 
 if __name__ == "__main__":
-    multi_agent_train(1000, 2, graph_all=True)
+    multi_agent_train(5000, 2, graph_all=True)
