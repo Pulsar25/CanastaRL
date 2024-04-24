@@ -8,16 +8,16 @@ import pandas as pd
 n_observations = 250
 n_actions = 50
 
-file = open("modelgen10/agent7.pkl", "rb")
+file = open("modelgen12/agent2.pkl", "rb")
 model1 = pickle.load(file)
 file.close()
-file = open("modelgen10/agent7.pkl", "rb")
+file = open("modelgen12/agent2.pkl", "rb")
 model2 = pickle.load(file)
 file.close()
-file = open("modelgen10/agent7.pkl", "rb")
+file = open("modelgen12/agent2.pkl", "rb")
 model3 = pickle.load(file)
 file.close()
-file = open("modelgen10/agent7.pkl", "rb")
+file = open("modelgen12/agent2.pkl", "rb")
 model4 = pickle.load(file)
 file.close()
 
@@ -94,7 +94,7 @@ def run_user_game():
             text = ""
             if game.turn == p:
                 text += "> "
-            text += "P" + str(p+1) + " Hand: "
+            text += "P" + str(p + 1) + " Hand: "
             hand = ""
             for i in range(15):
                 hand += (num_to_card(i) + " ") * game.players[p].hand[i]
@@ -365,7 +365,6 @@ def get_output_lables():
     out.append("move")
     out.append("finalscores1")
     out.append("finalscores2")
-    out.append("finalscores3")
     for i in range(1, 52):
         out.append("q_value" + str(i))
     return out
@@ -432,16 +431,15 @@ def export_to_csv(games, files, filepath):
 
 if __name__ == "__main__":
     run_user_game()
-
     """
     export_to_csv(
         300,
         [
-            "modelgen10/agent7.pkl",
-            "modelgen10/agent8.pkl",
-            "modelgen10/agent7.pkl",
-            "modelgen10/agent8.pkl",
+            "modelgen12/agent2.pkl",
+            "modelgen12/agent6.pkl",
+            "modelgen12/agent2.pkl",
+            "modelgen12/agent6.pkl",
         ],
-        "testoutput27.csv",
+        "testoutput29.csv",
     )
     """

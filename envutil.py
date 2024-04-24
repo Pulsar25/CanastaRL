@@ -775,25 +775,38 @@ def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
     turn = player.game.turn
     nodes = []
     for i in range(6):
-        for j in range(1,15):
-            for k in range(1,9):
-                if player.game.players[(turn + i) % player.game.playersCount].hand[j] >= k:
+        for j in range(1, 15):
+            for k in range(1, 9):
+                if (
+                    player.game.players[(turn + i) % player.game.playersCount].hand[j]
+                    >= k
+                ):
                     nodes.append(1)
                 else:
                     nodes.append(0)
     for i in range(3):
         curr = len(nodes)
         nodes += [0] * (11 * 5)
-        for canasta in player.game.players[(turn + i) % player.game.playersCount].board.canastas:
+        for canasta in player.game.players[
+            (turn + i) % player.game.playersCount
+        ].board.canastas:
             for j in range(5):
                 if canasta.get_total_count() - 3 >= j:
                     nodes[curr + (canasta.cardType - 4) * 5 + j] = 1
-        for pile in player.game.players[(turn + i) % player.game.playersCount].board.piles:
+        for pile in player.game.players[
+            (turn + i) % player.game.playersCount
+        ].board.piles:
             for j in range(5):
                 if pile.get_total_count() - 3 >= j:
                     nodes[curr + (pile.cardType - 4) * 5 + j] = 1
     for i in range(3):
-        nodes.append(len(player.game.players[(turn + i) % player.game.playersCount].board.canastas))
+        nodes.append(
+            len(
+                player.game.players[
+                    (turn + i) % player.game.playersCount
+                ].board.canastas
+            )
+        )
     curr = len(nodes)
     for i in range(14):
         nodes.append(0)

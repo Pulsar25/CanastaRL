@@ -28,24 +28,35 @@ custom_colors = [
 
 def update_scores_plot(agent_scores, last=False):
     global current_plot, legend_labels, custom_colors
+    avg_scores = []
+    for i in range(len(agent_scores[0])):
+        total = 0
+        for j in range(len(agent_scores)):
+            total += agent_scores[j][i]
+        avg_scores.append(total // len(agent_scores))
     if current_plot is None:
         current_plot, ax = plt.subplots(figsize=(10, 6))
-        for i, scores in enumerate(agent_scores):
+        for i, scores in enumerate(agent_scores + [avg_scores]):
             color = custom_colors[i % len(custom_colors)]
             ax.plot(
-                range(1, len(scores) + 1), scores, label=f"Agent {i + 1}", color=color
+                range(1, len(scores) + 1),
+                scores,
+                label=f"Agent {i + 1}" if i <= len(agent_scores) else "Average Scores",
+                color=color,
             )
         ax.set_title(plot_title)
         ax.set_xlabel("Game Number")
         ax.set_ylabel("Score")
         ax.legend(loc="upper left")  # Set legend location to the upper left
         ax.grid(True)
-        legend_labels = [f"Agent {i + 1}" for i in range(len(agent_scores))]
+        legend_labels = [f"Agent {i + 1}" for i in range(len(agent_scores))] + [
+            "Average Score"
+        ]
         plt.pause(0.1)
     else:
         ax = current_plot.get_axes()[0]
         ax.clear()
-        for i, scores in enumerate(agent_scores):
+        for i, scores in enumerate(agent_scores + [avg_scores]):
             color = custom_colors[i % len(custom_colors)]
             ax.plot(
                 range(1, len(scores) + 1), scores, label=legend_labels[i], color=color

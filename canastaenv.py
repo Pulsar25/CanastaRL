@@ -21,7 +21,7 @@ class CanastaEnv(Env):
             self.playerScoreLog = [0] * self.game.playersCount
 
     def run(self, is_training=False):
-        '''
+        """
         Run a complete game, either for evaluation or training RL agent.
 
         Args:
@@ -35,7 +35,7 @@ class CanastaEnv(Env):
 
         Note: The trajectories are 3-dimension list. The first dimension is for different players.
               The second dimension is for different transitions. The third dimension is for the contents of each transiton
-        '''
+        """
         trajectories = [[] for _ in range(self.num_players)]
         state, player_id = self.reset()
 
@@ -49,7 +49,9 @@ class CanastaEnv(Env):
                 action = self.agents[player_id].step(state)
 
             # Environment steps
-            next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
+            next_state, next_player_id = self.step(
+                action, self.agents[player_id].use_raw
+            )
             # Save action
             trajectories[player_id].append(action)
 
@@ -68,7 +70,6 @@ class CanastaEnv(Env):
         payoffs = self.get_payoffs()
 
         return trajectories, payoffs, self.get_max_score(), self.game.turns
-
 
     def get_max_score(self):
         player_scores = [

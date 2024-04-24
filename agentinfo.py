@@ -19,7 +19,9 @@ class AgentInfo:
         self.total_perf_evals += perf_eval
         self.total_last_perf_evals += perf_eval
         if len(self.perf_evals) > self.recent:
-            self.total_last_perf_evals -= self.perf_evals[len(self.perf_evals) - self.recent - 1]
+            self.total_last_perf_evals -= self.perf_evals[
+                len(self.perf_evals) - self.recent - 1
+            ]
         self.last_perf_evals.append(self.get_avg_recent_perf_eval())
 
     def add_score(self, score):
@@ -40,7 +42,9 @@ class AgentInfo:
         if len(self.last_perf_evals) < n:
             return self.last_perf_evals
         else:
-            return self.last_perf_evals[len(self.last_perf_evals) - n : len(self.last_perf_evals)]
+            return self.last_perf_evals[
+                len(self.last_perf_evals) - n : len(self.last_perf_evals)
+            ]
 
     def get_perf_evals(self, n):
         if len(self.perf_evals) < n:
