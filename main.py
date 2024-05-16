@@ -115,11 +115,9 @@ def kill_bad_agents(agents, num_kill):
         )
     return new_agents
 
-
 def multi_agent_train(
     training_cycles, num_enviornments, graph_all=False, print_each_game=False
 ):
-    pool = mp.Pool(num_enviornments)
     envs = [
         canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
         for _ in range(num_enviornments)
@@ -129,7 +127,9 @@ def multi_agent_train(
         random.shuffle(agents)
         for i in range(num_enviornments):
             envs[i].set_agents([a[0] for a in agents[(i * 4) : (4 + (i * 4))]])
-        output = pool.map(run_with_trajectories, envs)
+        output = []
+        for env in envs:
+            output.append(run_with_trajectories(env))
         for i in range(num_enviornments):
             payoffs, _ = output[i]
             for j in range(4):
@@ -141,7 +141,7 @@ def multi_agent_train(
         if cycle % 100 == 0:
             print(cycle)
             agents = kill_bad_agents(agents, 2)
-        if (graph_all and cycle % 100 == 0) or cycle == training_cycles:
+        if graph_all and cycle % 100 == 0:
             """
             with mp.Pool(num_enviornments * 4) as pool_eval:
                 perf_evals = pool_eval.map(
@@ -159,17 +159,25 @@ def multi_agent_train(
                 ],
                 cycle == training_cycles,
             )
-    while True:
-        model_to_save = input("What model to save? (stop to stop) ")
-        if model_to_save == "stop":
-            break
-        model_to_save = int(model_to_save)
-        file_name = input("File name? ")
-        folder_name = input("Folder name? ")
-        save_model(
-            [a for a in agents if a[1] == model_to_save][0][0], file_name, folder_name
-        )
+    if graph_all:
+        while True:
+            model_to_save = input("What model to save? (stop to stop) ")
+            if model_to_save == "stop":
+                break
+            model_to_save = int(model_to_save)
+            file_name = input("File name? ")
+            folder_name = input("Folder name? ")
+            save_model(
+                [a for a in agents if a[1] == model_to_save][0][0],
+                file_name,
+                folder_name,
+            )
+    else:
+        i = 0
+        for a in agents:
+            save_model(a[0], "model" + str(i), "curr")
+            i += 1
 
 
 if __name__ == "__main__":
-    multi_agent_train(1000, 2, graph_all=True)
+    multi_agent_train(50000, 2, graph_all=False)

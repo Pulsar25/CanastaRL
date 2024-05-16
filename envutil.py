@@ -154,14 +154,6 @@ class Team:
 
 class Game:
     def draw(self):
-        if len(self.drawPile) == 1:
-            self.drawPile += self.discardPile
-            self.discardPile = []
-            self.drawPile.reverse()
-        if len(self.drawPile) == 0:
-            self.drawPile += self.discardPile
-            self.discardPile = []
-            self.drawPile.reverse()
         if len(self.drawPile) == 0:
             self.finished = True
             return 4  # apprently we give them a 4 when its over
@@ -319,6 +311,16 @@ class Game:
         return out
 
 
+def get_transposition_tables(player):
+    sorted_hand = []
+    for i in range(1, 15):
+        sorted_hand.append((player.hand[i], i))
+    sorted_hand = sorted(sorted_hand)
+    transposition_pos_to_card = {(i+1): sorted_hand[i][1] for i in range(14)}
+    transposition_card_to_pos = {sorted_hand[i][1]: (i+1) for i in range(14)}
+    return transposition_pos_to_card, transposition_card_to_pos
+
+
 def check_legal(player: Player, game, move):
     while player.hand[15] > 0:
         player.board.redThrees += 1
@@ -350,7 +352,7 @@ def check_legal(player: Player, game, move):
         for i in player.board.piles:
             if (
                 i.cardType == game.discardPile[-1]
-                and hand_size >= 2
+                and hand_size + len(game.discardPile) - 1 >= 2
                 and (not game.frozen)
             ):
                 return True
@@ -396,6 +398,8 @@ def check_legal(player: Player, game, move):
         if not game.drawn:
             return False
         played_card = int(move[5:])
+        if played_card <= 3:
+            return False
         if hand_size <= 2 and len(player.board.canastas) < 2:
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
@@ -418,6 +422,8 @@ def check_legal(player: Player, game, move):
         if not game.drawn:
             return False
         played_card = int(move[5:])
+        if played_card <= 3:
+            return False
         if hand_size <= 2 and len(player.board.canastas) < 2:
             if len(player.board.canastas) == 1:
                 for pile in player.board.piles:
@@ -447,6 +453,8 @@ def check_legal(player: Player, game, move):
         return len(player.board.canastas) >= 2 or hand_size > 1
     else:
         played_card = int(move)
+        if played_card <= 3:
+            return False
         if (
             (not game.drawn)
             or hand_size == 1
@@ -482,23 +490,43 @@ def check_legal(player: Player, game, move):
         return False
 
 
-def num_to_move(num):
-    if num <= 10:
-        return str(num + 4)
-    if num <= 24:
-        return "d" + str(num - 10)
-    if num == 25:
+def num_to_move(num, player):
+    transposition_pos_to_card, _ = get_transposition_tables(player)
+    if num <= 13:
+        return str(transposition_pos_to_card[num + 1])
+    if num <= 27:
+        return "d" + str(transposition_pos_to_card[num - 13])
+    if num == 28:
         return "pickupPileJ"
-    if num == 26:
+    if num == 29:
         return "pickupPile2"
-    if num == 27:
+    if num == 30:
         return "pickup"
-    if num <= 38:
-        return "wildJ" + str(num - 24)
-    if num <= 49:
-        return "wild2" + str(num - 35)
-    if num == 50:
+    if num <= 44:
+        return "wildJ" + str(transposition_pos_to_card[num - 30])
+    if num <= 58:
+        return "wild2" + str(transposition_pos_to_card[num - 44])
+    if num == 59:
         return "goOut"
+
+
+def move_to_num(move, player):
+    _, transposition_card_to_pos = get_transposition_tables(player)
+    if move == "goOut":
+        return 59
+    if move == "pickupPile2":
+        return 29
+    if move == "pickupPileJ":
+        return 28
+    if move == "pickup":
+        return 30
+    if len(move) >= 5 and move[4] == "J":
+        return transposition_card_to_pos[int(move[5::])] + 30
+    if len(move) >= 5 and move[4] == "2":
+        return transposition_card_to_pos[int(move[5::])] + 44
+    if move[0] == "d":
+        return transposition_card_to_pos[int(move[1::])] + 13
+    return transposition_card_to_pos[int(move)] - 1
 
 
 def execute_move(player: Player, game: Game, move):
@@ -679,24 +707,6 @@ def execute_move(player: Player, game: Game, move):
         game.finished = True
 
 
-def move_to_num(move):
-    if move == "goOut":
-        return 50
-    if move == "pickupPile2":
-        return 26
-    if move == "pickupPileJ":
-        return 25
-    if move == "pickup":
-        return 27
-    if len(move) >= 5 and move[4] == "J":
-        return int(move[5::]) + 24
-    if len(move) >= 5 and move[4] == "2":
-        return int(move[5::]) + 35
-    if move[0] == "d":
-        return int(move[1::]) + 10
-    return int(move) - 4
-
-
 def nodes_conversion(hand, board, discard_pile, drawn, player):
     return nodes_conversion_linear(hand, board, discard_pile, drawn, player)
 
@@ -766,19 +776,20 @@ def nodes_conversion_non_linear(hand, board, discard_pile, drawn, player):
 
 def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
     # player cards 14 * 8 * 6
-    # player boards count 11 * 5 (3-7) * 3
+    # player boards count 14 * 5 (3-7) * 3
     # player canasta count (number) * 3
     # discard pile top * 14
     # discard pile size (number)
     # drawn
     # frozen
+    transposition_pos_to_card, transposition_card_to_pos = get_transposition_tables(player)
     turn = player.game.turn
     nodes = []
     for i in range(6):
         for j in range(1, 15):
             for k in range(1, 9):
                 if (
-                    player.game.players[(turn + i) % player.game.playersCount].hand[j]
+                    player.game.players[(turn + i) % player.game.playersCount].hand[transposition_pos_to_card[j]]
                     >= k
                 ):
                     nodes.append(1)
@@ -786,19 +797,19 @@ def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
                     nodes.append(0)
     for i in range(3):
         curr = len(nodes)
-        nodes += [0] * (11 * 5)
+        nodes += [0] * (14 * 5)
         for canasta in player.game.players[
             (turn + i) % player.game.playersCount
         ].board.canastas:
             for j in range(5):
                 if canasta.get_total_count() - 3 >= j:
-                    nodes[curr + (canasta.cardType - 4) * 5 + j] = 1
+                    nodes[curr + (transposition_card_to_pos[canasta.cardType] - 1) * 5 + j] = 1
         for pile in player.game.players[
             (turn + i) % player.game.playersCount
         ].board.piles:
             for j in range(5):
                 if pile.get_total_count() - 3 >= j:
-                    nodes[curr + (pile.cardType - 4) * 5 + j] = 1
+                    nodes[curr + (transposition_card_to_pos[pile.cardType] - 1) * 5 + j] = 1
     for i in range(3):
         nodes.append(
             len(

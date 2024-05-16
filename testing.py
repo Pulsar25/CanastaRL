@@ -5,23 +5,8 @@ import pickle
 from collections import OrderedDict
 import pandas as pd
 
-n_observations = 250
-n_actions = 50
-
-file = open("modelgen12/agent2.pkl", "rb")
-model1 = pickle.load(file)
-file.close()
-file = open("modelgen12/agent2.pkl", "rb")
-model2 = pickle.load(file)
-file.close()
-file = open("modelgen12/agent2.pkl", "rb")
-model3 = pickle.load(file)
-file.close()
-file = open("modelgen12/agent2.pkl", "rb")
-model4 = pickle.load(file)
-file.close()
-
-computer_models = [model1, model1, model1, model1, model1, model1]
+n_observations = 902
+n_actions = 60
 
 
 def run_game(predict_function, plays):
@@ -409,10 +394,12 @@ def game_to_data(game: envutil.Game) -> [int]:
 def get_data(games, files):
     agent_models = []
     for model_file in files:
+        model_name = model_file
         model_file = open(model_file, "rb")
         loaded_model = pickle.load(model_file)
         model_file.close()
         agent_models.append(loaded_model)
+        print(model_name + " " + str(type(loaded_model)))
     data = []
     output = [tournament_game(agent_models=agent_models) for _ in range(games)]
     for i in output:
@@ -430,16 +417,48 @@ def export_to_csv(games, files, filepath):
 
 
 if __name__ == "__main__":
-    run_user_game()
-    """
+    file = open("modelgencurr/model1.pkl", "rb")
+    model1 = pickle.load(file)
+    file.close()
+    file = open("modelgencurr/model1.pkl", "rb")
+    model2 = pickle.load(file)
+    file.close()
+    file = open("modelgencurr/model1.pkl", "rb")
+    model3 = pickle.load(file)
+    file.close()
+    file = open("modelgencurr/model1.pkl", "rb")
+    model4 = pickle.load(file)
+    file.close()
+
+    computer_models = [model1, model1, model1, model1, model1, model1]
+    #run_user_game()
     export_to_csv(
         300,
         [
-            "modelgen12/agent2.pkl",
-            "modelgen12/agent6.pkl",
-            "modelgen12/agent2.pkl",
-            "modelgen12/agent6.pkl",
+            "modelgencurr/4000model0.pkl",
+            "modelgencurr/4000model1.pkl",
+            "modelgencurr/4000model0.pkl",
+            "modelgencurr/4000model1.pkl",
         ],
-        "testoutput29.csv",
+        "testoutput37.csv",
     )
-    """
+    export_to_csv(
+        300,
+        [
+            "modelgencurr/4000model3.pkl",
+            "modelgencurr/4000model4.pkl",
+            "modelgencurr/4000model3.pkl",
+            "modelgencurr/4000model4.pkl",
+        ],
+        "testoutput38.csv",
+    )
+    export_to_csv(
+        300,
+        [
+            "modelgencurr/4000model5.pkl",
+            "modelgencurr/4000model6.pkl",
+            "modelgencurr/4000model5.pkl",
+            "modelgencurr/4000model6.pkl",
+        ],
+        "testoutput39.csv",
+    )

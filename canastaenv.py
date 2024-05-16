@@ -13,9 +13,9 @@ class CanastaEnv(Env):
         self.name = "canasta"
         self.game = envutil.Game(team_count, 2, 13)
         super().__init__(config={"allow_step_back": False, "seed": 1023012030123})
-        self.state_shape = [[857] for _ in range(self.game.playersCount)]
+        self.state_shape = [[902] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
-        self.num_actions = 51
+        self.num_actions = 60
         if reset_score_log:
             self.winningScores = []
             self.playerScoreLog = [0] * self.game.playersCount
@@ -91,7 +91,7 @@ class CanastaEnv(Env):
             i
             for i in range(self.num_actions)
             if envutil.check_legal(
-                self.game.get_current_player(), self.game, envutil.num_to_move(i)
+                self.game.get_current_player(), self.game, envutil.num_to_move(i, self.game.players[self.game.turn])
             )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
@@ -145,4 +145,4 @@ class CanastaEnv(Env):
         return np.array(player_payoffs)
 
     def _decode_action(self, action_id):
-        return envutil.num_to_move(action_id)
+        return envutil.num_to_move(action_id, self.game.players[self.game.turn])
