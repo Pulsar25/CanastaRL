@@ -8,14 +8,15 @@ class CanastaEnv(Env):
     def __init__(
         self,
         team_count,
+        players_per_team,
         reset_score_log=False,
     ):
         self.name = "canasta"
-        self.game = envutil.Game(team_count, 2, 13)
+        self.game = envutil.Game(team_count, players_per_team, 2, 15)
         super().__init__(config={"allow_step_back": False, "seed": 1023012030123})
-        self.state_shape = [[902] for _ in range(self.game.playersCount)]
+        self.state_shape = [[713] for _ in range(self.game.playersCount)]
         self.action_shape = [None for _ in range(self.game.playersCount)]
-        self.num_actions = 60
+        self.num_actions = 51
         if reset_score_log:
             self.winningScores = []
             self.playerScoreLog = [0] * self.game.playersCount
@@ -76,7 +77,7 @@ class CanastaEnv(Env):
             (
                 player.board.get_score()
                 - player.get_hand_score()
-                - player.partner.get_hand_score()
+                - sum([partner.get_hand_score() for partner in player.partners])
             )
             for player in self.game.players
         ]
@@ -91,7 +92,9 @@ class CanastaEnv(Env):
             i
             for i in range(self.num_actions)
             if envutil.check_legal(
-                self.game.get_current_player(), self.game, envutil.num_to_move(i, self.game.players[self.game.turn])
+                self.game.get_current_player(),
+                self.game,
+                envutil.num_to_move(i, self.game.players[self.game.turn]),
             )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
@@ -120,7 +123,7 @@ class CanastaEnv(Env):
             (
                 player.board.get_score()
                 - player.get_hand_score()
-                - player.partner.get_hand_score()
+                - sum([partner.get_hand_score() for partner in player.partners])
             )
             for player in self.game.players
         ]

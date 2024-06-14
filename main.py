@@ -8,10 +8,11 @@ from agentinfo import AgentInfo
 import graphing
 from copy import deepcopy
 from testing import tournament_game
-import multiprocessing as mp
 
 random_agent = RandomAgent(
-    num_actions=canastaenv.CanastaEnv(team_count=2, reset_score_log=True).num_actions
+    num_actions=canastaenv.CanastaEnv(
+        team_count=2, players_per_team=1, reset_score_log=True
+    ).num_actions
 )
 
 
@@ -25,13 +26,13 @@ def test_against_random(agent, games=20):
 
 def make_agents(n):
     out = []
-    env = canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+    env = canastaenv.CanastaEnv(team_count=2, players_per_team=1, reset_score_log=True)
     for i in range(n):
         agent = DQNAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
-            mlp_layers=[512, 512, 256, 256, 128, 128],
-            epsilon_decay_steps=100000,
+            mlp_layers=[512, 256, 128],
+            epsilon_decay_steps=1000,
             learning_rate=0.01,
             update_target_estimator_every=1000,
             train_every=1000,
@@ -43,7 +44,7 @@ def make_agents(n):
 
 def make_agents_linear(n, include_random=False):
     out = []
-    env = canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+    env = canastaenv.CanastaEnv(team_count=2, players_per_team=1, reset_score_log=True)
     for i in range(n):
         if i % 4 == 3 and include_random:
             agent = RandomAgent(num_actions=env.num_actions)
@@ -53,7 +54,7 @@ def make_agents_linear(n, include_random=False):
                 num_actions=env.num_actions,
                 state_shape=env.state_shape[0],
                 mlp_layers=[],
-                epsilon_decay_steps=100000,
+                epsilon_decay_steps=1000,
                 learning_rate=0.01,
                 update_target_estimator_every=1000,
                 train_every=1000,
@@ -115,32 +116,35 @@ def kill_bad_agents(agents, num_kill):
         )
     return new_agents
 
+
 def multi_agent_train(
     training_cycles, num_enviornments, graph_all=False, print_each_game=False
 ):
+    team_count = 2
+    players_per_team = 1
     envs = [
-        canastaenv.CanastaEnv(team_count=2, reset_score_log=True)
+        canastaenv.CanastaEnv(team_count=team_count, players_per_team=players_per_team, reset_score_log=True)
         for _ in range(num_enviornments)
     ]
-    agents = make_agents_linear(num_enviornments * 4, include_random=True)
+    agents = make_agents(num_enviornments * 2)
     for cycle in range(1, training_cycles + 1):
         random.shuffle(agents)
         for i in range(num_enviornments):
-            envs[i].set_agents([a[0] for a in agents[(i * 4) : (4 + (i * 4))]])
+            envs[i].set_agents([a[0] for a in agents[(i * team_count*players_per_team) : (team_count*players_per_team + (i * team_count*players_per_team))]])
         output = []
         for env in envs:
             output.append(run_with_trajectories(env))
         for i in range(num_enviornments):
             payoffs, _ = output[i]
-            for j in range(4):
-                agents[(i * 4) + j][2].add_score(payoffs[j])
+            for j in range(players_per_team * team_count):
+                agents[(i * players_per_team * team_count) + j][2].add_score(payoffs[j])
         if print_each_game:
             print("Cycle: " + str(cycle))
             for out in sorted([(agent[1], agent[2].scores[-1]) for agent in agents]):
                 print(str(out[0]) + ": " + str(int(out[1])))
         if cycle % 100 == 0:
             print(cycle)
-            agents = kill_bad_agents(agents, 2)
+            #agents = kill_bad_agents(agents, 2)
         if graph_all and cycle % 100 == 0:
             """
             with mp.Pool(num_enviornments * 4) as pool_eval:
@@ -180,4 +184,4 @@ def multi_agent_train(
 
 
 if __name__ == "__main__":
-    multi_agent_train(50000, 2, graph_all=False)
+    multi_agent_train(2000, 2, graph_all=False)

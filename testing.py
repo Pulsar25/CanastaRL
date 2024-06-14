@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pandas as pd
 
 n_observations = 902
-n_actions = 60
+n_actions = 51
 
 
 def run_game(predict_function, plays):
@@ -18,7 +18,7 @@ def run_game(predict_function, plays):
     game_states = [copy.deepcopy(game)]
     while True:
         chosen, _ = predict_function(game)
-        chosen = envutil.num_to_move(chosen)
+        chosen = envutil.num_to_move(chosen, game.players[game.turn])
         envutil.execute_move(game.players[game.turn], game, chosen)
         moves_made.append(chosen)
         game_states.append(copy.deepcopy(game))
@@ -42,7 +42,9 @@ def predict(game, models=None):
             i
             for i in range(51)
             if envutil.check_legal(
-                game.get_current_player(), game, envutil.num_to_move(i)
+                game.get_current_player(),
+                game,
+                envutil.num_to_move(i, game.players[game.turn]),
             )
         ]
         legal_actions_ids = {action_event: None for action_event in legal_actions}
@@ -70,12 +72,14 @@ def run_user_game():
     print()
     print("Human player will play player 1")
     teams = 2
+    players_per_team = 1
+    players_count = teams * players_per_team
     decks = 2
     hand_size = 13
-    game = envutil.Game(teams, decks, hand_size)
+    game = envutil.Game(teams, players_per_team, decks, hand_size)
     while True:
         print("Player " + str(game.turn + 1) + " playing")
-        for p in range(4):
+        for p in range(players_count):
             text = ""
             if game.turn == p:
                 text += "> "
@@ -114,6 +118,7 @@ def run_user_game():
                     + str(pile.twos)
                     + "Twos)  "
                 )
+            text += "\n" + ("Frozen" if game.frozen else "")
             print(text)
         if len(game.discardPile) > 0:
             print(num_to_card(game.discardPile[-1]))
@@ -127,10 +132,13 @@ def run_user_game():
         else:
             chosen, q_values = predict(game, models=[model1, model2, model3, model4])
             q_values = sorted(
-                [(q_values[i], envutil.num_to_move(i)) for i in range(len(q_values))],
+                [
+                    (q_values[i], envutil.num_to_move(i, game.players[game.turn]))
+                    for i in range(len(q_values))
+                ],
                 reverse=True,
             )
-            chosen = envutil.num_to_move(chosen)
+            chosen = envutil.num_to_move(chosen, game.players[game.turn])
             print("Player " + str(game.turn + 1) + " chose " + chosen)
             text = ""
             for i in range(5):
@@ -169,133 +177,18 @@ def num_to_card(n):
     return str(n)
 
 
-def run_model_game():
-    import pygame
-
-    print("Started Game")
-    states, moves = run_game(predict, 1000)
-    pygame.init()
-    screen = pygame.display.set_mode((1280, 720))
-    clock = pygame.time.Clock()
-    running = True
-
-    state = 0
-    last = None
-    time_down = 0.0
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        screen.fill("black")
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_RIGHTBRACKET] and (
-            last != keys[pygame.K_RIGHTBRACKET] or time_down > 1
-        ):
-            state += 1
-        if keys[pygame.K_LEFTBRACKET] and (
-            last != keys[pygame.K_RIGHTBRACKET] or time_down > 1
-        ):
-            state -= 1
-        last = keys[pygame.K_RIGHTBRACKET] or keys[pygame.K_LEFTBRACKET]
-        if state >= len(states):
-            state = len(states) - 1
-        if state < 0:
-            state = len(states) + state
-
-        if keys[pygame.K_q]:
-            running = False
-            break
-
-        for player in range(6):
-            text = ""
-            if player == states[state].turn:
-                text = "> "
-            text += "P" + str(player + 1) + " Hand: "
-            hand = ""
-            for i in range(15):
-                hand += (num_to_card(i) + " ") * states[state].players[player].hand[i]
-            text += hand
-            font1 = pygame.font.SysFont(text, 36)
-            img1 = font1.render(text, True, "white")
-            screen.blit(img1, (20, 20 + player * 30))
-
-        for player in range(3):
-            text = ""
-            if player == states[state].turn % 3:
-                text = "> "
-            text += "P" + str(player + 1) + " Board: "
-            for pile in states[state].players[player].board.canastas:
-                text += (
-                    "*("
-                    + num_to_card(pile.cardType)
-                    + ", "
-                    + str(pile.count)
-                    + ", "
-                    + str(pile.jokers)
-                    + "J, "
-                    + str(pile.twos)
-                    + "Twos)*  "
-                )
-            for pile in states[state].players[player].board.piles:
-                text += (
-                    "("
-                    + num_to_card(pile.cardType)
-                    + ", "
-                    + str(pile.count)
-                    + ", "
-                    + str(pile.jokers)
-                    + "J, "
-                    + str(pile.twos)
-                    + "Twos)  "
-                )
-            font1 = pygame.font.SysFont(text, 36)
-            img1 = font1.render(text, True, "white")
-            screen.blit(img1, (20, 240 + player * 60))
-
-        if state < len(moves):
-            font1 = pygame.font.SysFont((moves[state]), 36)
-            img1 = font1.render((moves[state]), True, "white")
-            screen.blit(img1, (20, 200))
-        if len(states[state].discardPile) > 0:
-            font1 = pygame.font.SysFont(num_to_card(states[state].discardPile[-1]), 36)
-            img1 = font1.render(
-                num_to_card(states[state].discardPile[-1]), True, "white"
-            )
-            screen.blit(img1, (20, 400))
-
-            font1 = pygame.font.SysFont(
-                num_to_card(states[state].discardPile[0:-1]), 36
-            )
-            img1 = font1.render(
-                num_to_card(states[state].discardPile[0:-1]), True, "white"
-            )
-            screen.blit(img1, (20, 425))
-
-        font1 = pygame.font.SysFont(str(state), 36)
-        img1 = font1.render(str(state), True, "white")
-        screen.blit(img1, (20, 450))
-
-        pygame.display.flip()
-        dt = clock.tick(60) / 1000
-        time_down += dt
-        if not keys[pygame.K_LEFTBRACKET] and not keys[pygame.K_RIGHTBRACKET]:
-            time_down = 0
-
-    pygame.quit()
-
-
 def tournament_game(agent_models):
     teams = 2
     decks = 2
     hand_size = 13
-    game = envutil.Game(teams, decks, hand_size)
+    players_per_team = 1
+    game = envutil.Game(teams, players_per_team, decks, hand_size)
     history = []
     while True:
         chosen, q_values = predict(game, models=agent_models)
         history.append((copy.deepcopy(game), chosen, q_values))
-        chosen = envutil.num_to_move(chosen)
-        envutil.execute_move(game.players[game.turn % (teams * 2)], game, chosen)
+        chosen = envutil.num_to_move(chosen, game.players[game.turn])
+        envutil.execute_move(game.players[game.turn % (teams * players_per_team)], game, chosen)
         if game.finished:
             break
     scores = []
@@ -303,7 +196,7 @@ def tournament_game(agent_models):
         scores.append(
             game.players[i].board.get_score()
             - game.players[i].get_hand_score()
-            - game.players[(i + teams) % (teams * 2)].get_hand_score()
+            - game.players[(i + teams) % (teams * players_per_team)].get_hand_score()
         )
     return scores, history
 
@@ -350,7 +243,7 @@ def get_output_lables():
     out.append("move")
     out.append("finalscores1")
     out.append("finalscores2")
-    for i in range(1, 52):
+    for i in range(1, 61):
         out.append("q_value" + str(i))
     return out
 
@@ -417,16 +310,16 @@ def export_to_csv(games, files, filepath):
 
 
 if __name__ == "__main__":
-    file = open("modelgencurr/model1.pkl", "rb")
+    file = open("modelgencurr/model0.pkl", "rb")
     model1 = pickle.load(file)
     file.close()
-    file = open("modelgencurr/model1.pkl", "rb")
+    file = open("modelgencurr/model0.pkl", "rb")
     model2 = pickle.load(file)
     file.close()
-    file = open("modelgencurr/model1.pkl", "rb")
+    file = open("modelgencurr/model0.pkl", "rb")
     model3 = pickle.load(file)
     file.close()
-    file = open("modelgencurr/model1.pkl", "rb")
+    file = open("modelgencurr/model0.pkl", "rb")
     model4 = pickle.load(file)
     file.close()
 
@@ -435,30 +328,20 @@ if __name__ == "__main__":
     export_to_csv(
         300,
         [
-            "modelgencurr/4000model0.pkl",
-            "modelgencurr/4000model1.pkl",
-            "modelgencurr/4000model0.pkl",
-            "modelgencurr/4000model1.pkl",
+            "modelgencurr/model0.pkl",
+            "modelgencurr/model2.pkl",
+            "modelgencurr/model0.pkl",
+            "modelgencurr/model2.pkl",
         ],
-        "testoutput37.csv",
+        "testoutput43.csv",
     )
     export_to_csv(
         300,
         [
-            "modelgencurr/4000model3.pkl",
-            "modelgencurr/4000model4.pkl",
-            "modelgencurr/4000model3.pkl",
-            "modelgencurr/4000model4.pkl",
+            "modelgencurr/model3.pkl",
+            "modelgencurr/model4.pkl",
+            "modelgencurr/model3.pkl",
+            "modelgencurr/model4.pkl",
         ],
-        "testoutput38.csv",
-    )
-    export_to_csv(
-        300,
-        [
-            "modelgencurr/4000model5.pkl",
-            "modelgencurr/4000model6.pkl",
-            "modelgencurr/4000model5.pkl",
-            "modelgencurr/4000model6.pkl",
-        ],
-        "testoutput39.csv",
+        "testoutput44.csv",
     )

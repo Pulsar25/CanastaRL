@@ -78,12 +78,10 @@ class Board:
         self.redThrees = 0
         self.piles = []
         self.canastas = []
-        self.player1 = None
-        self.player2 = None
+        self.players = []
 
-    def set_players(self, p1, p2):
-        self.player1 = p1
-        self.player2 = p2
+    def set_players(self, players):
+        self.players = players
 
     def get_score(self, include_red_threes=False):
         out = 0
@@ -94,8 +92,8 @@ class Board:
                 out += 100 * self.redThrees
         for pile in self.piles:
             out += pile.get_score()
-        out -= self.player1.get_hand_score()
-        out -= self.player2.get_hand_score()
+        for player in self.players:
+            out -= player.get_hand_score()
         for canasta in self.canastas:
             out += canasta.get_score()
             if not canasta.is_dirty():
@@ -122,7 +120,8 @@ class Player:
         self.board = board
         self.game = game
         self.knowledge = [defaultdict(int) for _ in range(game.playersCount - 1)]
-        self.partner = None
+        self.partners = []
+        self.team = None
 
     def get_hand_size(self):
         out = 0
@@ -146,8 +145,7 @@ class Player:
 
 
 class Team:
-    playerOne = None
-    playerTwo = None
+    players = []
     score = 0
     board = None
 
@@ -206,56 +204,55 @@ class Game:
             self.turn % self.playersCount,
         )
 
-    def __init__(self, teams, decks, hand_size):
+    def __init__(self, teams, players_per_team, decks, hand_size):
         self.allow_step_back = False
         self.discardPile = []
         self.drawPile = []
         self.teams = []
         self.teamsCount = teams
+        self.playersPerTeam = players_per_team
         self.decks = decks
         self.boards = []
-        self.players: List[Player] = [None] * (teams * 2)
-        self.playersCount = None
-        self.teamsCount = None
+        self.players: List[Player] = [None] * (teams * players_per_team)
+        self.playersCount = teams * players_per_team
+        self.teamsCount = teams
         self.turns = 0
-        self.handSize = None
+        self.handSize = hand_size
         self.drawn = False
         self.frozen = False
         self.turn = 0
         self.finished = False
-        self.handSize = hand_size
-        self.playersCount = teams * 2
-        self.teamsCount = teams
         for k in range(decks):
             self.drawPile += generate_deck()
         random.shuffle(self.drawPile)
         self.discardPile.append(self.draw())
         for i in range(teams):
-            player_one_hand = []
-            player_two_hand = []
-            for j in range(hand_size):
-                player_one_hand.append(self.draw())
-                player_two_hand.append(self.draw())
+            player_hands = []
+            for _ in range(players_per_team):
+                hand = []
+                for _ in range(hand_size):
+                    hand.append(self.draw())
+                player_hands.append(hand)
             board = Board()
             team = Team()
-            player_one = Player(player_one_hand, self, board)
-            player_two = Player(player_two_hand, self, board)
-            player_one.partner = player_two
-            player_two.partner = player_one
-            board.set_players(player_one, player_two)
-            player_one.teamate = player_two
-            player_two.teamate = player_one
-            player_two.game = self
-            player_one.game = self
-            team.playerOne = player_one
-            team.playerTwo = player_two
+            players = []
+            for j in range(players_per_team):
+                players.append(Player(player_hands[j], self, board))
+            for j in range(players_per_team):
+                players[j].game = self
+                players[j].team = team
+                other_players = []
+                for k in range(players_per_team):
+                    if k != j:
+                        other_players.append(players[k])
+                players[j].partners = other_players
+            board.set_players(players)
+            team.players = players
             team.board = board
-            player_one.team = team
-            player_two.team = team
             self.teams.append(team)
             self.boards.append(board)
-            self.players[i] = player_one
-            self.players[i + teams] = player_two
+            for j in range(players_per_team):
+                self.players[i + teams * j] = players[j]
 
     def reset(self):
         self.discardPile = []
@@ -273,31 +270,32 @@ class Game:
         random.shuffle(self.drawPile)
         self.discardPile.append(self.draw())
         for i in range(self.teamsCount):
-            player_one_hand = []
-            player_two_hand = []
-            for j in range(self.handSize):
-                player_one_hand.append(self.draw())
-                player_two_hand.append(self.draw())
+            player_hands = []
+            for _ in range(self.playersPerTeam):
+                hand = []
+                for _ in range(self.handSize):
+                    hand.append(self.draw())
+                player_hands.append(hand)
             board = Board()
             team = Team()
-            player_one = Player(player_one_hand, self, board)
-            player_two = Player(player_two_hand, self, board)
-            player_one.partner = player_two
-            player_two.partner = player_one
-            board.set_players(player_one, player_two)
-            player_one.teamate = player_two
-            player_two.teamate = player_one
-            player_two.game = self
-            player_one.game = self
-            team.playerOne = player_one
-            team.playerTwo = player_two
+            players = []
+            for j in range(self.playersPerTeam):
+                players.append(Player(player_hands[j], self, board))
+            for j in range(self.playersPerTeam):
+                players[j].game = self
+                players[j].team = team
+                other_players = []
+                for k in range(self.playersPerTeam):
+                    if k != j:
+                        other_players.append(players[k])
+                players[j].partners = other_players
+            board.set_players(players)
+            team.players = players
             team.board = board
-            player_one.team = team
-            player_two.team = team
             self.teams.append(team)
             self.boards.append(board)
-            self.players[i] = player_one
-            self.players[i + self.teamsCount] = player_two
+            for j in range(self.playersPerTeam):
+                self.players[i + self.teamsCount * j] = players[j]
 
     def get_current_player(self):
         return self.players[self.turn % self.playersCount]
@@ -311,13 +309,15 @@ class Game:
         return out
 
 
+# 4,5,6,7,8,9,10,11,12,13,14
+# 1st most common, 2nd most common, etc.
 def get_transposition_tables(player):
     sorted_hand = []
-    for i in range(1, 15):
+    for i in range(4, 15):
         sorted_hand.append((player.hand[i], i))
     sorted_hand = sorted(sorted_hand)
-    transposition_pos_to_card = {(i+1): sorted_hand[i][1] for i in range(14)}
-    transposition_card_to_pos = {sorted_hand[i][1]: (i+1) for i in range(14)}
+    transposition_pos_to_card = {(i + 1): sorted_hand[i][1] for i in range(11)}
+    transposition_card_to_pos = {sorted_hand[i][1]: (i + 1) for i in range(11)}
     return transposition_pos_to_card, transposition_card_to_pos
 
 
@@ -492,41 +492,53 @@ def check_legal(player: Player, game, move):
 
 def num_to_move(num, player):
     transposition_pos_to_card, _ = get_transposition_tables(player)
-    if num <= 13:
+    if num <= 10:
         return str(transposition_pos_to_card[num + 1])
-    if num <= 27:
+    if num == 11:
+        return "d1"
+    if num == 12:
+        return "d2"
+    if num == 13:
+        return "d3"
+    if num <= 24:
         return "d" + str(transposition_pos_to_card[num - 13])
-    if num == 28:
+    if num == 25:
         return "pickupPileJ"
-    if num == 29:
+    if num == 26:
         return "pickupPile2"
-    if num == 30:
+    if num == 27:
         return "pickup"
-    if num <= 44:
-        return "wildJ" + str(transposition_pos_to_card[num - 30])
-    if num <= 58:
-        return "wild2" + str(transposition_pos_to_card[num - 44])
-    if num == 59:
+    if num <= 38:
+        return "wildJ" + str(transposition_pos_to_card[num - 27])
+    if num <= 49:
+        return "wild2" + str(transposition_pos_to_card[num - 38])
+    if num == 50:
         return "goOut"
 
 
 def move_to_num(move, player):
     _, transposition_card_to_pos = get_transposition_tables(player)
     if move == "goOut":
-        return 59
+        return 50
     if move == "pickupPile2":
-        return 29
+        return 26
     if move == "pickupPileJ":
-        return 28
+        return 25
     if move == "pickup":
-        return 30
+        return 27
     if len(move) >= 5 and move[4] == "J":
-        return transposition_card_to_pos[int(move[5::])] + 30
+        return transposition_card_to_pos[int(move[5::])] + 27
     if len(move) >= 5 and move[4] == "2":
-        return transposition_card_to_pos[int(move[5::])] + 44
+        return transposition_card_to_pos[int(move[5::])] + 38
+    if move == "d1":
+        return 11
+    if move == "d2":
+        return 12
+    if move == "d3":
+        return 13
     if move[0] == "d":
         return transposition_card_to_pos[int(move[1::])] + 13
-    return transposition_card_to_pos[int(move)] - 1
+    return transposition_card_to_pos[int(move)] - 4
 
 
 def execute_move(player: Player, game: Game, move):
@@ -697,9 +709,9 @@ def execute_move(player: Player, game: Game, move):
         start += 1
     for i in range(game.playersCount - 1):
         for j in range(1, 15):
-            game.players[(start + i + 1) % game.playersCount].knowledge[2 - i][
-                j
-            ] += knowledge_update[j]
+            game.players[(start + i + 1) % game.playersCount].knowledge[
+                game.playersCount - 2 - i
+            ][j] += knowledge_update[j]
     hand_size = 0
     for i in range(1, 15):
         hand_size += player.hand[i]
@@ -782,14 +794,18 @@ def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
     # discard pile size (number)
     # drawn
     # frozen
-    transposition_pos_to_card, transposition_card_to_pos = get_transposition_tables(player)
+    transposition_pos_to_card, transposition_card_to_pos = get_transposition_tables(
+        player
+    )
     turn = player.game.turn
     nodes = []
     for i in range(6):
-        for j in range(1, 15):
+        for j in range(1, 12):
             for k in range(1, 9):
                 if (
-                    player.game.players[(turn + i) % player.game.playersCount].hand[transposition_pos_to_card[j]]
+                    player.game.players[(turn + i) % player.game.playersCount].hand[
+                        transposition_pos_to_card[j]
+                    ]
                     >= k
                 ):
                     nodes.append(1)
@@ -797,19 +813,23 @@ def nodes_conversion_linear(hand, board, discard_pile, drawn, player):
                     nodes.append(0)
     for i in range(3):
         curr = len(nodes)
-        nodes += [0] * (14 * 5)
+        nodes += [0] * (11 * 5)
         for canasta in player.game.players[
             (turn + i) % player.game.playersCount
         ].board.canastas:
             for j in range(5):
                 if canasta.get_total_count() - 3 >= j:
-                    nodes[curr + (transposition_card_to_pos[canasta.cardType] - 1) * 5 + j] = 1
+                    nodes[
+                        curr + (transposition_card_to_pos[canasta.cardType] - 1) * 5 + j
+                    ] = 1
         for pile in player.game.players[
             (turn + i) % player.game.playersCount
         ].board.piles:
             for j in range(5):
                 if pile.get_total_count() - 3 >= j:
-                    nodes[curr + (transposition_card_to_pos[pile.cardType] - 1) * 5 + j] = 1
+                    nodes[
+                        curr + (transposition_card_to_pos[pile.cardType] - 1) * 5 + j
+                    ] = 1
     for i in range(3):
         nodes.append(
             len(
